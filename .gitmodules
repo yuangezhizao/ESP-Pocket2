@@ -1,0 +1,3 @@
+[submodule "components/XPowersLib"]
+	path = components/XPowersLib
+	url = https://github.com/yuangezhizao/XPowersLib.git
