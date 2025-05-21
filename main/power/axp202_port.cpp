@@ -7,6 +7,8 @@
 static const char *TAG = "AXP202";
 
 #define MY_AXP202_SLAVE_ADDRESS (0x34)
+#define CHANNEL_ENABLE_ICON  "✅"
+#define CHANNEL_DISABLE_ICON "❌"
 
 XPowersPMU power;
 
@@ -80,21 +82,24 @@ esp_err_t pmu_init()
     // Turn off USB input current limit
     power.setVbusCurrentLimit(XPOWERS_AXP202_VBUS_CUR_LIM_OFF);
 
-    // DC2 700~3500 mV, IMAX=1.6A;
+    // DC2 700~2275 mV, 25mV/step, IMAX=1.6A
     // power.setDC2Voltage(3300); // 十轴传感器供电
 
-    // DC3 700~3500 mV,IMAX=0.7A;
+    // DC3 700~3500 mV, 25mV/step, IMAX=1.2A
     power.setDC3Voltage(3300); // 主控供电
 
     // LDO2 1800~3300 mV, 100mV/step, IMAX=200mA
     power.setLDO2Voltage(3300); // 屏幕与SD卡供电
 
-    // LDO3 700~2275 mV, 100mV/step, IMAX=200mA
+    // LDO3 700~3500 mV, 25mV/step, IMAX=200mA
+    // power.setLDO3Mode(XPOWERS_AXP202_LDO3_MODE_LDO);
+    // power.setLDO3Mode(XPOWERS_AXP202_LDO3_MODE_DCIN);
     // power.setLDO3Voltage(3500); // 触觉驱动器供电
 
-    /*  LDO4 Range:
-    1250, 1300, 1400, 1500, 1600, 1700, 1800, 1900,
-    2000, 2500, 2700, 2800, 3000, 3100, 3200, 3300
+    // LDO4 1800~3300 mV, 100mV/step, IMAX=200mA
+    /* LDO4 Range:
+       1250, 1300, 1400, 1500, 1600, 1700, 1800, 1900,
+       2000, 2500, 2700, 2800, 3000, 3100, 3200, 3300
     */
     // power.setLDO4Voltage(3300); // 音频供电
 
@@ -110,13 +115,13 @@ esp_err_t pmu_init()
     power.enableLDOio();
 
     ESP_LOGI(TAG, "DCDC=======================================================================");
-    ESP_LOGI(TAG, "DC2:  %s   Voltage:%u mV", power.isEnableDC2() ? "ENABLE" : "DISABLE", power.getDC2Voltage());
-    ESP_LOGI(TAG, "DC3:  %s   Voltage:%u mV", power.isEnableDC3() ? "ENABLE" : "DISABLE", power.getDC3Voltage());
+    ESP_LOGI(TAG, "DC2:     ENABLE: %s    Voltage:%u mV", power.isEnableDC2() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getDC2Voltage());
+    ESP_LOGI(TAG, "DC3:     ENABLE: %s    Voltage:%u mV", power.isEnableDC3() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getDC3Voltage());
     ESP_LOGI(TAG, "LDO========================================================================");
-    ESP_LOGI(TAG, "LDO2: %s   Voltage:%u mV", power.isEnableLDO2() ? "ENABLE" : "DISABLE", power.getLDO2Voltage());
-    ESP_LOGI(TAG, "LDO3: %s   Voltage:%u mV", power.isEnableLDO3() ? "ENABLE" : "DISABLE", power.getLDO3Voltage());
-    ESP_LOGI(TAG, "LDO4: %s   Voltage:%u mV", power.isEnableLDO4() ? "ENABLE" : "DISABLE", power.getLDO4Voltage());
-    ESP_LOGI(TAG, "LDOio: %s   Voltage:%u mV", power.isEnableLDOio() ? "ENABLE" : "DISABLE", power.getLDOioVoltage());
+    ESP_LOGI(TAG, "LDO2:    ENABLE: %s    Voltage:%u mV", power.isEnableLDO2() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO2Voltage());
+    ESP_LOGI(TAG, "LDO3:    ENABLE: %s    Voltage:%u mV    Mode: %s", power.isEnableLDO3() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO3Voltage(), power.isLDO3LDOMode() ? "DCIN(<Vbus)" : "LDO");
+    ESP_LOGI(TAG, "LDO4:    ENABLE: %s    Voltage:%u mV", power.isEnableLDO4() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO4Voltage());
+    ESP_LOGI(TAG, "LDOio:   ENABLE: %s    Voltage:%u mV", power.isEnableLDOio() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDOioVoltage());
     ESP_LOGI(TAG, "===========================================================================\n");
 
     // Set the time of pressing the button to turn off
