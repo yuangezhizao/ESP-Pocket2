@@ -1,0 +1,67 @@
+name: Build ESP-IDF project
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+env:
+  ESP_IDF_TARGET: ESP32S3
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+        esp_idf_version:
+          - latest
+          - release-v5.4
+          - release-v5.3
+          - release-v5.2
+          - release-v5.1
+          - release-v5.0
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: 📤 Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 🛠️ Build ESP-IDF project
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: ${{ matrix.esp_idf_version }}
+          target: ${{ env.ESP_IDF_TARGET }}
+
+      - name: 📏 Show size by idf.py
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: ${{ matrix.esp_idf_version }}
+          target: ${{ env.ESP_IDF_TARGET }}
+          command: |
+            idf.py size
+            idf.py size-components
+            idf.py size-files
+
+      - name: ℹ️ Show image_info by esptool.py
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: ${{ matrix.esp_idf_version }}
+          target: ${{ env.ESP_IDF_TARGET }}
+          command: |
+            esptool.py image_info build/ESP-Pocket2.bin --version 2
+            echo -e
+            esptool.py image_info build/bootloader/bootloader.bin --version 2
+
+      - name: 📦 Upload binary images
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ESP_IDF_TARGET }}-images_built-on-${{ matrix.os }}_with-esp-idf-${{ matrix.esp_idf_version }}
+          path: |
+            build/bootloader/bootloader.bin
+            build/partition_table/partition-table.bin
+            build/ESP-Pocket2.bin
