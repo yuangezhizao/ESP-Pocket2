@@ -1,0 +1,71 @@
+name: Build ESP-IDF project
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+env:
+  ESP_IDF_TARGET: ESP32S3
+  ARTIFACT_BOOTLOADER_BIN_PATH: build/bootloader/bootloader.bin
+  ARTIFACT_PARTITION_TABLE_BIN_PATH: build/partition_table/partition-table.bin
+  ARTIFACT_APP_BIN_PATH: build/ESP-Pocket2.bin
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+        esp_idf_version:
+          - latest
+          - release-v5.4
+          - release-v5.3
+          - release-v5.2
+          - release-v5.1
+          - release-v5.0
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: 📤 Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 🛠️ Build ESP-IDF project
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: ${{ matrix.esp_idf_version }}
+          target: ${{ env.ESP_IDF_TARGET }}
+
+      - name: 📏 Show size by idf.py
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: ${{ matrix.esp_idf_version }}
+          target: ${{ env.ESP_IDF_TARGET }}
+          command: |
+            idf.py size
+            idf.py size-components
+            idf.py size-files
+
+      - name: ℹ️ Show image_info by esptool.py
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: ${{ matrix.esp_idf_version }}
+          target: ${{ env.ESP_IDF_TARGET }}
+          command: |
+            esptool.py image_info ${{ env.ARTIFACT_BOOTLOADER_BIN_PATH }} --version 2
+            echo -e
+            esptool.py image_info ${{ env.ARTIFACT_APP_BIN_PATH }} --version 2
+
+      - name: 📦 Upload build artifacts (include binary images)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ESP_IDF_TARGET }}-build-artifacts_on-${{ matrix.os }}_with-esp-idf-${{ matrix.esp_idf_version }}
+          path: |
+            build
+            # ${{ env.ARTIFACT_BOOTLOADER_BIN_PATH }}
+            # ${{ env.ARTIFACT_PARTITION_TABLE_BIN_PATH }}
+            # ${{ env.ARTIFACT_APP_BIN_PATH }}
