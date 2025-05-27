@@ -1,3 +1,6 @@
 [submodule "components/XPowersLib"]
 	path = components/XPowersLib
 	url = https://github.com/yuangezhizao/XPowersLib.git
+[submodule "components/SensorLib"]
+	path = components/SensorLib
+	url = https://github.com/yuangezhizao/SensorLib.git
