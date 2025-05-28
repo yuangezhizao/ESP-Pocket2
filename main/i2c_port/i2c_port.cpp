@@ -1,6 +1,6 @@
 #include "i2c_port.h"
 
-static const char *TAG = "XPowersLib";
+static const char *TAG = "I2C_PORT";
 
 #define I2C_MASTER_NUM (i2c_port_t) CONFIG_I2C_MASTER_PORT_NUM
 #define I2C_MASTER_SDA_IO (gpio_num_t) CONFIG_PMU_I2C_SDA
