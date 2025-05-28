@@ -14,7 +14,10 @@ env:
 
 jobs:
   build:
+    continue-on-error: ${{ matrix.experimental }}
+
     strategy:
+      fail-fast: true
       matrix:
         os:
           - ubuntu-latest
@@ -22,9 +25,18 @@ jobs:
           - latest
           - release-v5.4
           - release-v5.3
-          - release-v5.2
-          - release-v5.1
-          - release-v5.0
+        experimental:
+          - false
+        include:
+          - os: ubuntu-latest
+            esp_idf_version: release-v5.2
+            experimental: true
+          - os: ubuntu-latest
+            esp_idf_version: release-v5.1
+            experimental: true
+          - os: ubuntu-latest
+            esp_idf_version: release-v5.0
+            experimental: true
 
     runs-on: ${{ matrix.os }}
 
