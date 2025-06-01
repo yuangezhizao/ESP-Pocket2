@@ -94,7 +94,7 @@ esp_err_t pmu_init()
     // LDO3 700~3500 mV, 25mV/step, IMAX=200mA
     // power.setLDO3Mode(XPOWERS_AXP202_LDO3_MODE_LDO);
     // power.setLDO3Mode(XPOWERS_AXP202_LDO3_MODE_DCIN);
-    // power.setLDO3Voltage(3500); // 触觉驱动器供电
+    power.setLDO3Voltage(3500); // 触觉驱动器供电
 
     // LDO4 1800~3300 mV, 100mV/step, IMAX=200mA
     /* LDO4 Range:
@@ -110,7 +110,7 @@ esp_err_t pmu_init()
     power.disableDC2();
     power.enableDC3();
     power.enableLDO2();
-    power.disableLDO3();
+    power.enableLDO3();
     power.disableLDO4();
     power.enableLDOio();
 

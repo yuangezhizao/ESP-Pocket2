@@ -22,51 +22,49 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- * @file      i2c_driver.h
+ * @file      main_drv2605.c
  * @author    Lewis He (lewishe@outlook.com)
- * @date      2025-01-19
+ * @date      2025-06-01
  *
  */
-#pragma once
-
-#include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/gpio.h"
-
 #include "sdkconfig.h"
-#include "esp_log.h"
-#include "esp_err.h"
-#include "esp_idf_version.h"
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0) && defined(CONFIG_SENSORLIB_ESP_IDF_NEW_API)
-#include "driver/i2c_master.h"
-#else
-#include "driver/i2c.h"
-#endif // ESP_IDF_VERSION
+// #include "i2c_driver.h"
+#include "axp202_port.h"
+#include "sensor_drv2605.h"
 
-#ifdef __cplusplus
-extern "C"
+static const char *TAG = "MAIN-DRV2605";
+
+static void app_task(void *args);
+
+// extern "C" void app_main(void)
+void app_main(void)
 {
-#endif
+    ESP_ERROR_CHECK(pmu_init());
 
 #if CONFIG_I2C_COMMUNICATION_METHOD_BUILTIN_RW || CONFIG_I2C_COMMUNICATION_METHOD_CALLBACK_RW
 
-    esp_err_t i2c_drv_init(void);
-    void i2c_drv_scan();
-    bool i2c_drv_probe(uint8_t devAddr);
+    // ESP_ERROR_CHECK(i2c_drv_init());
 
-#if CONFIG_I2C_COMMUNICATION_METHOD_CALLBACK_RW
+    ESP_LOGI(TAG, "I2C initialized successfully");
 
-    bool i2c_wr_function(uint8_t addr, uint8_t reg, uint8_t *buf, size_t len, bool writeReg, bool isWrite);
-    int i2c_read_callback(uint8_t devAddr, uint8_t regAddr, uint8_t *data, uint8_t len);
-    int i2c_write_callback(uint8_t devAddr, uint8_t regAddr, uint8_t *data, uint8_t len);
-    esp_err_t i2c_drv_device_init(uint8_t address);
+    // Run bus scan
+    i2c_drv_scan();
 
 #endif
 
-#endif
+    ESP_ERROR_CHECK(drv2605_init());
 
-#ifdef __cplusplus
+    ESP_LOGI(TAG, "Run...");
+
+    xTaskCreate(app_task, "App", 20 * 1024, NULL, 10, NULL);
 }
-#endif
+
+static void app_task(void *args)
+{
+    while (1)
+    {
+        drv2605_loop();
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
