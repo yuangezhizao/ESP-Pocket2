@@ -65,7 +65,8 @@ esp_err_t app_lcd_init(void)
 
     esp_lcd_panel_reset(lcd_panel);
     esp_lcd_panel_init(lcd_panel);
-    esp_lcd_panel_mirror(lcd_panel, true, true);
+    esp_lcd_panel_swap_xy(lcd_panel, EXAMPLE_LCD_DIRECTION_SWAP_X_Y);
+    esp_lcd_panel_mirror(lcd_panel, EXAMPLE_LCD_DIRECTION_MIRROR_X, EXAMPLE_LCD_DIRECTION_MIRROR_Y);
     esp_lcd_panel_disp_on_off(lcd_panel, true);
 
     /* LCD backlight on */
@@ -111,9 +112,9 @@ esp_err_t app_touch_init(void)
             .interrupt = 0,
         },
         .flags = {
-            .swap_xy = 0,
-            .mirror_x = 1,
-            .mirror_y = 0,
+            .swap_xy = EXAMPLE_LCD_DIRECTION_SWAP_X_Y,
+            .mirror_x = EXAMPLE_LCD_DIRECTION_MIRROR_X,
+            .mirror_y = EXAMPLE_LCD_DIRECTION_MIRROR_Y,
         },
     };
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
@@ -149,9 +150,9 @@ esp_err_t app_lvgl_init(void)
         .color_format = LV_COLOR_FORMAT_RGB565,
 #endif
         .rotation = {
-            .swap_xy = false,
-            .mirror_x = true,
-            .mirror_y = true,
+            .swap_xy = EXAMPLE_LCD_DIRECTION_SWAP_X_Y,
+            .mirror_x = EXAMPLE_LCD_DIRECTION_MIRROR_X,
+            .mirror_y = EXAMPLE_LCD_DIRECTION_MIRROR_Y,
         },
         .flags = {
             .buff_dma = true,
