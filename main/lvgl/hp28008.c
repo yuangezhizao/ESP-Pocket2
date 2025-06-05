@@ -36,10 +36,10 @@ esp_err_t app_lcd_init(void)
     const spi_bus_config_t buscfg = {
         .sclk_io_num = EXAMPLE_LCD_GPIO_SCLK,
         .mosi_io_num = EXAMPLE_LCD_GPIO_MOSI,
-        .miso_io_num = GPIO_NUM_NC,
+        .miso_io_num = EXAMPLE_LCD_GPIO_MISO, // Note: GPIO_NUM_NC
         .quadwp_io_num = GPIO_NUM_NC,
         .quadhd_io_num = GPIO_NUM_NC,
-        .max_transfer_sz = EXAMPLE_LCD_H_RES * EXAMPLE_LCD_DRAW_BUFF_HEIGHT * sizeof(uint16_t),
+        .max_transfer_sz = EXAMPLE_LCD_H_RES * EXAMPLE_LCD_DRAW_BUFF_HEIGHT * sizeof(uint16_t), // Note: EXAMPLE_LCD_H_RES * EXAMPLE_LCD_V_RES * sizeof(uint16_t)};
     };
     ESP_RETURN_ON_ERROR(spi_bus_initialize(EXAMPLE_LCD_SPI_NUM, &buscfg, SPI_DMA_CH_AUTO), TAG, "SPI init failed");
 
@@ -65,6 +65,9 @@ esp_err_t app_lcd_init(void)
 
     esp_lcd_panel_reset(lcd_panel);
     esp_lcd_panel_init(lcd_panel);
+#if EXAMPLE_LCD_INVERT_COLOR == (1)
+    esp_lcd_panel_invert_color(lcd_panel, EXAMPLE_LCD_INVERT_COLOR);
+#endif
     // esp_lcd_panel_swap_xy(lcd_panel, EXAMPLE_LCD_DIRECTION_SWAP_X_Y);
     // esp_lcd_panel_mirror(lcd_panel, EXAMPLE_LCD_DIRECTION_MIRROR_X, EXAMPLE_LCD_DIRECTION_MIRROR_Y);
     esp_lcd_panel_disp_on_off(lcd_panel, true);
@@ -94,9 +97,9 @@ esp_err_t app_touch_init(void)
     const i2c_config_t i2c_conf = {
         .mode = I2C_MODE_MASTER,
         .sda_io_num = EXAMPLE_TOUCH_I2C_SDA,
-        .sda_pullup_en = GPIO_PULLUP_DISABLE,
+        .sda_pullup_en = GPIO_PULLUP_DISABLE, // Note: GPIO_PULLUP_ENABLE
         .scl_io_num = EXAMPLE_TOUCH_I2C_SCL,
-        .scl_pullup_en = GPIO_PULLUP_DISABLE,
+        .scl_pullup_en = GPIO_PULLUP_DISABLE, // Note: GPIO_PULLUP_ENABLE
         .master.clk_speed = EXAMPLE_TOUCH_I2C_CLK_HZ};
     ESP_RETURN_ON_ERROR(i2c_param_config(EXAMPLE_TOUCH_I2C_NUM, &i2c_conf), TAG, "I2C configuration failed");
     ESP_RETURN_ON_ERROR(i2c_driver_install(EXAMPLE_TOUCH_I2C_NUM, i2c_conf.mode, 0, 0, 0), TAG, "I2C initialization failed");
