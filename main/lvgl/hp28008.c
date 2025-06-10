@@ -6,7 +6,12 @@
 
 #include "hp28008.h"
 
-static const char *TAG = "HP28008";
+#define BASE_TAG "HP28008"
+
+static const char *TAG = BASE_TAG;
+static const char *TAG_LCD = BASE_TAG "-LCD";
+static const char *TAG_TOUCH = BASE_TAG "-TOUCH";
+static const char *TAG_LVGL = BASE_TAG "-LVGL";
 
 // LVGL image declare
 LV_IMG_DECLARE(esp_logo)
@@ -26,13 +31,14 @@ esp_err_t app_lcd_init(void)
     esp_err_t ret = ESP_OK;
 
     /* LCD backlight */
+    ESP_LOGI(TAG_LCD, "[1/5] Turn off LCD backlight");
     gpio_config_t bk_gpio_config = {
         .mode = GPIO_MODE_OUTPUT,
         .pin_bit_mask = 1ULL << EXAMPLE_LCD_GPIO_BL};
     ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
 
     /* LCD initialization */
-    ESP_LOGD(TAG, "Initialize SPI bus");
+    ESP_LOGI(TAG_LCD, "[2/5] Initialize SPI bus");
     const spi_bus_config_t buscfg = {
         .sclk_io_num = EXAMPLE_LCD_GPIO_SCLK,
         .mosi_io_num = EXAMPLE_LCD_GPIO_MOSI,
@@ -43,7 +49,7 @@ esp_err_t app_lcd_init(void)
     };
     ESP_RETURN_ON_ERROR(spi_bus_initialize(EXAMPLE_LCD_SPI_NUM, &buscfg, SPI_DMA_CH_AUTO), TAG, "SPI init failed");
 
-    ESP_LOGD(TAG, "Install panel IO");
+    ESP_LOGI(TAG_LCD, "[3/5] Install panel IO");
     const esp_lcd_panel_io_spi_config_t io_config = {
         .dc_gpio_num = EXAMPLE_LCD_GPIO_DC,
         .cs_gpio_num = EXAMPLE_LCD_GPIO_CS,
@@ -53,9 +59,11 @@ esp_err_t app_lcd_init(void)
         .spi_mode = 0,
         .trans_queue_depth = 10,
     };
+
+    // Attach the LCD to the SPI bus
     ESP_GOTO_ON_ERROR(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)EXAMPLE_LCD_SPI_NUM, &io_config, &lcd_io), err, TAG, "New panel IO failed");
 
-    ESP_LOGD(TAG, "Install LCD driver");
+    ESP_LOGI(TAG_LCD, "[4/5] Install ST7789 panel driver");
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = EXAMPLE_LCD_GPIO_RST,
         .color_space = EXAMPLE_LCD_COLOR_SPACE,
@@ -70,9 +78,12 @@ esp_err_t app_lcd_init(void)
 #endif
     // esp_lcd_panel_swap_xy(lcd_panel, EXAMPLE_LCD_DIRECTION_SWAP_X_Y);
     // esp_lcd_panel_mirror(lcd_panel, EXAMPLE_LCD_DIRECTION_MIRROR_X, EXAMPLE_LCD_DIRECTION_MIRROR_Y);
+
+    // user can flush pre-defined pattern to the screen before we turn on the screen or backlight
     esp_lcd_panel_disp_on_off(lcd_panel, true);
 
     /* LCD backlight on */
+    ESP_LOGI(TAG_LCD, "[5/5] Turn on LCD backlight");
     ESP_ERROR_CHECK(gpio_set_level(EXAMPLE_LCD_GPIO_BL, EXAMPLE_LCD_BL_ON_LEVEL));
 
     return ret;
@@ -94,6 +105,7 @@ err:
 esp_err_t app_touch_init(void)
 {
     /* Initilize I2C */
+    ESP_LOGI(TAG_TOUCH, "[1/2] Initialize I2C bus");
     const i2c_config_t i2c_conf = {
         .mode = I2C_MODE_MASTER,
         .sda_io_num = EXAMPLE_TOUCH_I2C_SDA,
@@ -105,6 +117,7 @@ esp_err_t app_touch_init(void)
     ESP_RETURN_ON_ERROR(i2c_driver_install(EXAMPLE_TOUCH_I2C_NUM, i2c_conf.mode, 0, 0, 0), TAG, "I2C initialization failed");
 
     /* Initialize touch HW */
+    ESP_LOGI(TAG_TOUCH, "[2/2] Initialize touch controller GT911");
     const esp_lcd_touch_config_t tp_cfg = {
         .x_max = EXAMPLE_LCD_H_RES,
         .y_max = EXAMPLE_LCD_V_RES,
@@ -122,6 +135,8 @@ esp_err_t app_touch_init(void)
     };
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
     const esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
+
+    // Attach the TOUCH to the I2C bus
     ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)EXAMPLE_TOUCH_I2C_NUM, &tp_io_config, &tp_io_handle), TAG, "");
     return esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, &touch_handle);
 }
@@ -130,6 +145,7 @@ esp_err_t app_touch_init(void)
 esp_err_t app_lvgl_init(void)
 {
     /* Initialize LVGL */
+    ESP_LOGI(TAG_LVGL, "[1/3] Initialize LVGL library");
     const lvgl_port_cfg_t lvgl_cfg = {
         .task_priority = 4,       /* LVGL task priority */
         .task_stack = 4096,       /* LVGL task stack size */
@@ -140,7 +156,7 @@ esp_err_t app_lvgl_init(void)
     ESP_RETURN_ON_ERROR(lvgl_port_init(&lvgl_cfg), TAG, "LVGL port initialization failed");
 
     /* Add LCD screen */
-    ESP_LOGD(TAG, "Add LCD screen");
+    ESP_LOGI(TAG_LVGL, "[2/3] Add LCD screen for LVGL");
     const lvgl_port_display_cfg_t disp_cfg = {
         .io_handle = lcd_io,
         .panel_handle = lcd_panel,
@@ -166,6 +182,7 @@ esp_err_t app_lvgl_init(void)
     lvgl_disp = lvgl_port_add_disp(&disp_cfg);
 
     /* Add touch input (for selected screen) */
+    ESP_LOGI(TAG_LVGL, "[3/3] Add touch input for LVGL");
     const lvgl_port_touch_cfg_t touch_cfg = {
         .disp = lvgl_disp,
         .handle = touch_handle,
@@ -191,6 +208,7 @@ static void _app_button_cb(lv_event_t *e)
 // static void app_main_display(void)
 void app_main_display(void)
 {
+    ESP_LOGI(TAG, "Display LVGL example");
 
 #if EXAMPLE_LCD_DIRECTION == (180)
     lv_disp_set_rotation(lvgl_disp, LV_DISPLAY_ROTATION_180);
@@ -202,6 +220,7 @@ void app_main_display(void)
     lvgl_port_lock(0);
 
     /* Your LVGL objects code here .... */
+    // Lock the mutex due to the LVGL APIs are not thread-safe
 
     /* Create image */
     lv_obj_t *img_logo = lv_img_create(scr);
