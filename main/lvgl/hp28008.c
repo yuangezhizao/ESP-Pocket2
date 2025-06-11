@@ -25,6 +25,51 @@ static esp_lcd_touch_handle_t touch_handle = NULL;
 static lv_display_t *lvgl_disp = NULL;
 static lv_indev_t *lvgl_touch_indev = NULL;
 
+#if EXAMPLE_LCD_BL_USE_LEDC == (1)
+static void example_ledc_init(void)
+{
+    // Prepare and then apply the LEDC PWM timer configuration
+    ledc_timer_config_t ledc_timer = {
+        .speed_mode = LEDC_MODE,
+        .duty_resolution = LEDC_DUTY_RES,
+        .timer_num = LEDC_TIMER,
+        .freq_hz = LEDC_FREQUENCY, // Set output frequency at 4 kHz
+        .clk_cfg = LEDC_AUTO_CLK};
+    ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
+
+    // Prepare and then apply the LEDC PWM channel configuration
+    ledc_channel_config_t ledc_channel = {
+        .speed_mode = LEDC_MODE,
+        .channel = LEDC_CHANNEL,
+        .timer_sel = LEDC_TIMER,
+        .intr_type = LEDC_INTR_DISABLE,
+        .gpio_num = LEDC_OUTPUT_IO,
+        .duty = 0, // Set duty to 0%
+        .hpoint = 0};
+    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+}
+
+static void example_ledc_set_lcd_brightness(uint32_t percentage)
+{
+    ESP_LOGI(TAG_LCD, "Set LCD BL brightness to %" PRIu32 "%%", percentage);
+
+    // Check if the percentage is valid
+    if (percentage > 100)
+    {
+        ESP_LOGE(TAG_LCD, "BL brightness percentage %" PRIu32 "%% is out of range (0-100), resetting to default 50%%", percentage);
+        percentage = 50;
+    }
+
+    // Convert percentage to duty
+    uint32_t duty = (percentage / 100.00) * LEDC_DUTY_MAX;
+
+    // Set duty to ledc_duty
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, duty));
+    // Update duty to apply the new value
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+}
+#endif
+
 // static esp_err_t app_lcd_init(void)
 esp_err_t app_lcd_init(void)
 {
@@ -83,8 +128,18 @@ esp_err_t app_lcd_init(void)
     esp_lcd_panel_disp_on_off(lcd_panel, true);
 
     /* LCD backlight on */
-    ESP_LOGI(TAG_LCD, "[5/5] Turn on LCD backlight");
+#if EXAMPLE_LCD_BL_USE_LEDC == (1)
+    ESP_LOGI(TAG_LCD, "[5/5] Turn on LCD backlight by LEDC");
+
+    // Set the LEDC peripheral configuration
+    example_ledc_init();
+
+    // Set the duty cycle for the LEDC channel
+    example_ledc_set_lcd_brightness(50);
+#else
+    ESP_LOGI(TAG_LCD, "[5/5] Turn on LCD backlight by GPIO");
     ESP_ERROR_CHECK(gpio_set_level(EXAMPLE_LCD_GPIO_BL, EXAMPLE_LCD_BL_ON_LEVEL));
+#endif
 
     return ret;
 

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <inttypes.h>
+
 #include "sdkconfig.h"
 #include "esp_log.h"
 #include "esp_err.h"
@@ -20,6 +22,7 @@
 
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
+#include "driver/ledc.h"
 
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_vendor.h"
@@ -41,6 +44,8 @@
 #define EXAMPLE_LCD_BITS_PER_PIXEL (16)
 #define EXAMPLE_LCD_DRAW_BUFF_DOUBLE (1)
 #define EXAMPLE_LCD_DRAW_BUFF_HEIGHT (50) // Note: 80 in spi_lcd_touch_example_main.c
+
+#define EXAMPLE_LCD_BL_USE_LEDC (1)
 #define EXAMPLE_LCD_BL_ON_LEVEL (1)
 #define EXAMPLE_LCD_DIRECTION (180)
 #define EXAMPLE_LCD_DIRECTION (180)
@@ -74,6 +79,21 @@
 #define EXAMPLE_TOUCH_I2C_SDA (GPIO_NUM_47)
 #define EXAMPLE_TOUCH_GPIO_INT (GPIO_NUM_45)
 #define EXAMPLE_TOUCH_GPIO_RST (GPIO_NUM_21)
+
+/* LEDC settings */
+/* Warning:
+ * For ESP32, ESP32S2, ESP32S3, ESP32C3, ESP32C2, ESP32C6, ESP32H2 (rev < 1.2), ESP32P4 targets,
+ * when LEDC_DUTY_RES selects the maximum duty resolution (i.e. value equal to SOC_LEDC_TIMER_BIT_WIDTH),
+ * 100% duty cycle is not reachable (duty cannot be set to (2 ** SOC_LEDC_TIMER_BIT_WIDTH)).
+ */
+#define LEDC_TIMER LEDC_TIMER_0
+#define LEDC_MODE LEDC_LOW_SPEED_MODE
+#define LEDC_OUTPUT_IO EXAMPLE_LCD_GPIO_BL // Define the output GPIO
+#define LEDC_CHANNEL LEDC_CHANNEL_0
+#define LEDC_DUTY_RES LEDC_TIMER_13_BIT // Set duty resolution to 13 bits
+// #define LEDC_DUTY (4096)                // Set duty to 50%. (2 ** 13) * 50% = 4096
+#define LEDC_DUTY_MAX (8192)  // (2 ** 13) = 8192
+#define LEDC_FREQUENCY (4000) // Frequency in Hertz. Set frequency at 4 kHz
 
 #ifdef __cplusplus
 extern "C"
