@@ -3,7 +3,7 @@
 
 void app_main(void)
 {
-    pmu_init();
+    axp202_init();
 
     /* LCD HW initialization */
     ESP_ERROR_CHECK(app_lcd_init());

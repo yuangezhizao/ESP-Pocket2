@@ -7,12 +7,12 @@
 static const char *TAG = "AXP202";
 
 #define MY_AXP202_SLAVE_ADDRESS (0x34)
-#define CHANNEL_ENABLE_ICON  "✅"
+#define CHANNEL_ENABLE_ICON "✅"
 #define CHANNEL_DISABLE_ICON "❌"
 
 XPowersPMU power;
 
-esp_err_t pmu_init()
+esp_err_t axp202_init()
 {
     ESP_LOGI(TAG, "===================================AXP202==================================");
 
@@ -23,11 +23,11 @@ esp_err_t pmu_init()
     ESP_LOGI(TAG, "Implemented using read and write callback methods");
     if (power.begin(MY_AXP202_SLAVE_ADDRESS, pmu_register_read, pmu_register_write_byte))
     {
-        ESP_LOGI(TAG, "Init PMU SUCCESS!");
+        ESP_LOGI(TAG, "Init AXP202 SUCCESS!");
     }
     else
     {
-        ESP_LOGE(TAG, "Init PMU FAILED!");
+        ESP_LOGE(TAG, "Init AXP202 FAILED!");
         return ESP_FAIL;
     }
 #endif
@@ -43,11 +43,11 @@ esp_err_t pmu_init()
 
     if (power.begin(bus_handle, MY_AXP202_SLAVE_ADDRESS))
     {
-        ESP_LOGI(TAG, "Init PMU SUCCESS!");
+        ESP_LOGI(TAG, "Init AXP202 SUCCESS!");
     }
     else
     {
-        ESP_LOGE(TAG, "Init PMU FAILED!");
+        ESP_LOGE(TAG, "Init AXP202 FAILED!");
         return false;
     }
 #else
@@ -56,11 +56,11 @@ esp_err_t pmu_init()
 
     if (power.begin((i2c_port_t)CONFIG_I2C_MASTER_PORT_NUM, MY_AXP202_SLAVE_ADDRESS, CONFIG_PMU_I2C_SDA, CONFIG_PMU_I2C_SCL))
     {
-        ESP_LOGI(TAG, "Init PMU SUCCESS!");
+        ESP_LOGI(TAG, "Init AXP202 SUCCESS!");
     }
     else
     {
-        ESP_LOGE(TAG, "Init PMU FAILED!");
+        ESP_LOGE(TAG, "Init AXP202 FAILED!");
         return false;
     }
 #endif // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5,0,0)
@@ -238,17 +238,18 @@ esp_err_t pmu_init()
     return ESP_OK;
 }
 
-void printPMU()
+void axp202_show_info()
 {
     ESP_LOGI(TAG, "===================================AXP202==================================");
-    ESP_LOGI(TAG, "isCharging: %s", power.isCharging() ? "YES" : "NO");
-    ESP_LOGI(TAG, "isDischarge: %s", power.isDischarge() ? "YES" : "NO");
-    ESP_LOGI(TAG, "isVbusIn: %s", power.isVbusIn() ? "YES" : "NO");
+    ESP_LOGI(TAG, "isCharging: %s", power.isCharging() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    ESP_LOGI(TAG, "isDischarge: %s", power.isDischarge() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    ESP_LOGI(TAG, "isVbusIn: %s", power.isVbusIn() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    ESP_LOGI(TAG, "isAcinIn: %s", power.isAcinIn() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
 
     ESP_LOGI(TAG, "getVbusVoltage: %d mV", power.getVbusVoltage());
     ESP_LOGI(TAG, "getVbusCurrent: %.2f mA", power.getVbusCurrent());
-    // ESP_LOGI(TAG, "getAcinVoltage: %d mV", power.getAcinVoltage());
-    // ESP_LOGI(TAG, "getAcinCurrent: %.2f mA", power.getAcinCurrent());
+    ESP_LOGI(TAG, "getAcinVoltage: %d mV", power.getAcinVoltage());
+    ESP_LOGI(TAG, "getAcinCurrent: %.2f mA", power.getAcinCurrent());
     ESP_LOGI(TAG, "getSystemVoltage: %d mV", power.getSystemVoltage());
     ESP_LOGI(TAG, "getTemperature: %.2f°C", power.getTemperature());
 
@@ -263,7 +264,7 @@ void printPMU()
     ESP_LOGI(TAG, "===========================================================================\n");
 }
 
-void enterPmuSleep(void)
+void axp202_enter_sleep()
 {
     // Set sleep flag
     power.enableSleep();
@@ -277,7 +278,7 @@ void enterPmuSleep(void)
     power.disableDC3();
 }
 
-void pmu_isr_handler()
+void axp202_isr_handler()
 {
     // Get PMU Interrupt Status Register
     power.getIrqStatus();
@@ -365,6 +366,9 @@ void pmu_isr_handler()
     if (power.isPekeyShortPressIrq())
     {
         ESP_LOGI(TAG, "isPekeyShortPress");
+
+        axp202_show_info();
+
         // enterPmuSleep();
     }
     if (power.isPekeyLongPressIrq())
@@ -403,7 +407,7 @@ void pmu_isr_handler()
     {
         ESP_LOGI(TAG, "isWdtExpire");
 
-        printPMU();
+        axp202_show_info();
 
         // Clear the timer state and continue to the next timer
         power.clearTimerFlag();
@@ -423,4 +427,5 @@ void pmu_isr_handler()
     // Clear PMU Interrupt Status Register
     power.clearIrqStatus();
 }
+
 #endif /*CONFIG_XPOWERS_CHIP_AXP202*/

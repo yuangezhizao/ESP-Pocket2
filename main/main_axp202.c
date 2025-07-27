@@ -67,7 +67,7 @@ void app_main(void)
     ESP_LOGI(TAG, "I2C initialized successfully");
 #endif
 
-    ESP_ERROR_CHECK(pmu_init());
+    ESP_ERROR_CHECK(axp202_init());
 
     xTaskCreate(pmu_handler_task, "App/pwr", 4 * 1024, NULL, 10, NULL);
 
@@ -81,7 +81,7 @@ static void pmu_handler_task(void *args)
     {
         if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY))
         {
-            pmu_isr_handler();
+            axp202_isr_handler();
         }
     }
 }
