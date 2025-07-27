@@ -23,6 +23,7 @@ jobs:
           - ubuntu-latest
         esp_idf_version:
           - latest
+          - release-v5.5
           - release-v5.4
           - release-v5.3
         experimental:
