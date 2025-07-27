@@ -12,9 +12,9 @@ static esp_err_t i2c_master_init()
     conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
     conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
 
-    i2c_param_config(I2C_NUM_0, &conf);
+    i2c_param_config(I2C_MASTER_NUM, &conf);
 
-    return i2c_driver_install(I2C_NUM_0, conf.mode, 0, 0, 0);
+    return i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0, 0);
 }
 
 void i2c_scanner_task(void *ignore)
@@ -37,7 +37,7 @@ void i2c_scanner_task(void *ignore)
             i2c_master_write_byte(cmd, (i << 1) | I2C_MASTER_WRITE, 1 /* expect ack */);
             i2c_master_stop(cmd);
 
-            res = i2c_master_cmd_begin(I2C_NUM_0, cmd, 10 / portTICK_PERIOD_MS);
+            res = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 10 / portTICK_PERIOD_MS);
 
             if (i % 16 == 0)
                 printf("\n%.2x:", i);
