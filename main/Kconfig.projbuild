@@ -60,7 +60,7 @@ menu "XPowersLib Configuration"
         int "PMU SCL GPIO Num"
         default 48 if IDF_TARGET_ESP32S3
         default 10 if IDF_TARGET_ESP32C6
-        default 22
+        default -1
         help
             GPIO number for I2C PMU clock line.
 
@@ -68,7 +68,7 @@ menu "XPowersLib Configuration"
         int "PMU SDA GPIO Num"
         default 47 if IDF_TARGET_ESP32S3
         default 11 if IDF_TARGET_ESP32C6
-        default 21
+        default -1
         help
             GPIO number for I2C PMU data line.
 
@@ -76,7 +76,7 @@ menu "XPowersLib Configuration"
         int "PMU Interrupt Pin"
         default 2 if IDF_TARGET_ESP32S3
         default 5 if IDF_TARGET_ESP32C6
-        default 35
+        default -1
         help
             PMU interrupt pin.
 
@@ -162,7 +162,7 @@ menu "SensorLib Example Configuration"
         int "Sensor SCL GPIO Num"
         default 48 if IDF_TARGET_ESP32S3
         default 10 if IDF_TARGET_ESP32C6
-        default 22
+        default -1
         depends on (PCF8563 || BMA423 || FT636X || XL9555 ||  (BHI260 && USE_I2C_INTERFACE))
         help
             GPIO number for I2C clock line.
@@ -171,48 +171,48 @@ menu "SensorLib Example Configuration"
         int "Sensor SDA GPIO Num"
         default 47 if IDF_TARGET_ESP32S3
         default 11 if IDF_TARGET_ESP32C6
-        default 21
+        default -1
         depends on (PCF8563 || BMA423 || FT636X || XL9555 ||   (BHI260 && USE_I2C_INTERFACE))
         help
             GPIO number for I2C data line.
 
     config SPI_MISO
         int "SPI MISO GPIO Num"
-        default 34
+        default -1
         depends on (BHI260 && USE_SPI_INTERFACE)
         help
             GPIO number for Sensor SPI MISO line.
 
     config SPI_MOSI
         int "SPI MOSI GPIO Num"
-        default 33
+        default -1
         depends on (BHI260 && USE_SPI_INTERFACE)
         help
             GPIO number for Sensor SPI MOSI line.
 
     config SPI_SCK
         int "SPI SCK GPIO Num"
-        default 35
+        default -1
         depends on (BHI260 && USE_SPI_INTERFACE)
         help
             GPIO number for Sensor SPI SCK line.
 
     config SPI_CS
         int "SPI CS GPIO Num"
-        default 36
+        default -1
         depends on (BHI260 && USE_SPI_INTERFACE)
         help
             GPIO number for Sensor SPI CS line.
 
     config SENSOR_IRQ
         int "Sensor Interrupt Pin"        
-        default 37
+        default -1
         help
             GPIO number for Sensor Interrupt line.
 
     config SENSOR_RST
         int "Sensor reset Pin"
-        default 47
+        default -1
         help
             GPIO number for Sensor Reset line.
 
