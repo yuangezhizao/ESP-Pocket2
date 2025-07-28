@@ -40,13 +40,13 @@ static void app_task(void *args);
 // extern "C" void app_main(void)
 void app_main(void)
 {
-    ESP_ERROR_CHECK(axp202_init());
-
 #if CONFIG_I2C_COMMUNICATION_METHOD_BUILTIN_RW || CONFIG_I2C_COMMUNICATION_METHOD_CALLBACK_RW
 
     // ESP_ERROR_CHECK(i2c_drv_init());
 
     ESP_LOGI(TAG, "I2C initialized successfully");
+
+    ESP_ERROR_CHECK(axp202_init());
 
     // Run bus scan
     i2c_drv_scan();
