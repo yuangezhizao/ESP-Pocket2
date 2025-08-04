@@ -202,11 +202,11 @@ esp_err_t app_lvgl_init(void)
     /* Initialize LVGL */
     ESP_LOGI(TAG_LVGL, "[1/3] Initialize LVGL library");
     const lvgl_port_cfg_t lvgl_cfg = {
-        .task_priority = 4,       /* LVGL task priority */
-        .task_stack = 4096,       /* LVGL task stack size */
-        .task_affinity = -1,      /* LVGL task pinned to core (-1 is no affinity) */
-        .task_max_sleep_ms = 500, /* Maximum sleep in LVGL task */
-        .timer_period_ms = 5      /* LVGL timer tick period in ms */
+        .task_priority = EXAMPLE_LVGL_TASK_PRIORITY,         /* LVGL task priority */
+        .task_stack = EXAMPLE_LVGL_TASK_STACK_SIZE,          /* LVGL task stack size */
+        .task_affinity = EXAMPLE_LVGL_TASK_AFFINITY,         /* LVGL task pinned to core (-1 is no affinity) */
+        .task_max_sleep_ms = EXAMPLE_LVGL_TASK_MAX_DELAY_MS, /* Maximum sleep in LVGL task */
+        .timer_period_ms = EXAMPLE_LVGL_TICK_PERIOD_MS       /* LVGL timer tick period in ms */
     };
     ESP_RETURN_ON_ERROR(lvgl_port_init(&lvgl_cfg), TAG, "LVGL port initialization failed");
 

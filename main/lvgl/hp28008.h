@@ -36,18 +36,17 @@
 #define EXAMPLE_LCD_V_RES (320)
 
 /* LCD settings */
-#define EXAMPLE_LCD_SPI_NUM (SPI3_HOST)             // Note: (SPI2_HOST) in spi_lcd_touch_example_main.c
-#define EXAMPLE_LCD_PIXEL_CLK_HZ (40 * 1000 * 1000) // Note: (20 * 1000 * 1000) in spi_lcd_touch_example_main.c
+#define EXAMPLE_LCD_SPI_NUM (SPI3_HOST)             // Note: (SPI2_HOST) in spi_lcd_touch_example_main.c#L38
+#define EXAMPLE_LCD_PIXEL_CLK_HZ (40 * 1000 * 1000) // Note: (20 * 1000 * 1000) in spi_lcd_touch_example_main.c#L43
 #define EXAMPLE_LCD_CMD_BITS (8)
 #define EXAMPLE_LCD_PARAM_BITS (8)
 #define EXAMPLE_LCD_COLOR_SPACE (ESP_LCD_COLOR_SPACE_RGB)
 #define EXAMPLE_LCD_BITS_PER_PIXEL (16)
 #define EXAMPLE_LCD_DRAW_BUFF_DOUBLE (1)
-#define EXAMPLE_LCD_DRAW_BUFF_HEIGHT (50) // Note: 80 in spi_lcd_touch_example_main.c
+#define EXAMPLE_LCD_DRAW_BUFF_HEIGHT (50) // Note: 20 in spi_lcd_touch_example_main.c#L67
 
 #define EXAMPLE_LCD_BL_USE_LEDC (1)
 #define EXAMPLE_LCD_BL_ON_LEVEL (1)
-#define EXAMPLE_LCD_DIRECTION (180)
 #define EXAMPLE_LCD_DIRECTION (180)
 #define EXAMPLE_LCD_INVERT_COLOR (1)
 
@@ -94,6 +93,13 @@
 // #define LEDC_DUTY (4096)                // Set duty to 50%. (2 ** 13) * 50% = 4096
 #define LEDC_DUTY_MAX (8192)  // (2 ** 13) = 8192
 #define LEDC_FREQUENCY (4000) // Frequency in Hertz. Set frequency at 4 kHz
+
+/* LVGL settings */
+#define EXAMPLE_LVGL_TASK_PRIORITY 4 // Note: 2 in spi_lcd_touch_example_main.c#L72
+#define EXAMPLE_LVGL_TASK_STACK_SIZE (4 * 1024)
+#define EXAMPLE_LVGL_TASK_AFFINITY -1
+#define EXAMPLE_LVGL_TASK_MAX_DELAY_MS 500
+#define EXAMPLE_LVGL_TICK_PERIOD_MS 5 // Note: 2 in spi_lcd_touch_example_main.c#L68
 
 #ifdef __cplusplus
 extern "C"
