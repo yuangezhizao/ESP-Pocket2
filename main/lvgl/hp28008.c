@@ -121,8 +121,8 @@ esp_err_t app_lcd_init(void)
 #if EXAMPLE_LCD_INVERT_COLOR == (1)
     esp_lcd_panel_invert_color(lcd_panel, EXAMPLE_LCD_INVERT_COLOR);
 #endif
-    // esp_lcd_panel_swap_xy(lcd_panel, EXAMPLE_LCD_DIRECTION_SWAP_X_Y);
-    // esp_lcd_panel_mirror(lcd_panel, EXAMPLE_LCD_DIRECTION_MIRROR_X, EXAMPLE_LCD_DIRECTION_MIRROR_Y);
+    // esp_lcd_panel_swap_xy(lcd_panel, EXAMPLE_LCD_DIRECTION_SWAP_X_Y);                                // Note: DO NOT NEED
+    // esp_lcd_panel_mirror(lcd_panel, EXAMPLE_LCD_DIRECTION_MIRROR_X, EXAMPLE_LCD_DIRECTION_MIRROR_Y); // Note: DO NOT NEED
 
     // user can flush pre-defined pattern to the screen before we turn on the screen or backlight
     esp_lcd_panel_disp_on_off(lcd_panel, true);
@@ -186,7 +186,7 @@ esp_err_t app_touch_init(void)
         //     .swap_xy = EXAMPLE_LCD_DIRECTION_SWAP_X_Y,
         //     .mirror_x = EXAMPLE_LCD_DIRECTION_MIRROR_X,
         //     .mirror_y = EXAMPLE_LCD_DIRECTION_MIRROR_Y,
-        // },
+        // }, // Note: DO NOT NEED
     };
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
     const esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
@@ -227,7 +227,7 @@ esp_err_t app_lvgl_init(void)
         //     .swap_xy = EXAMPLE_LCD_DIRECTION_SWAP_X_Y,
         //     .mirror_x = EXAMPLE_LCD_DIRECTION_MIRROR_X,
         //     .mirror_y = EXAMPLE_LCD_DIRECTION_MIRROR_Y,
-        // },
+        // }, // Note: DO NOT NEED
         .flags = {
             .buff_dma = true,
 #if LVGL_VERSION_MAJOR >= 9
@@ -265,8 +265,12 @@ void app_main_display(void)
 {
     ESP_LOGI(TAG, "Display LVGL example");
 
-#if EXAMPLE_LCD_DIRECTION == (180)
+#if EXAMPLE_LCD_DIRECTION == (90)
+    lv_disp_set_rotation(lvgl_disp, LV_DISPLAY_ROTATION_90);
+#elif EXAMPLE_LCD_DIRECTION == (180)
     lv_disp_set_rotation(lvgl_disp, LV_DISPLAY_ROTATION_180);
+#elif EXAMPLE_LCD_DIRECTION == (270)
+    lv_disp_set_rotation(lvgl_disp, LV_DISPLAY_ROTATION_270);
 #endif
 
     lv_obj_t *scr = lv_scr_act();
