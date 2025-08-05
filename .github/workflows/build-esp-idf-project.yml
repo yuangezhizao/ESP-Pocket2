@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
+      - dev
 
 env:
   ESP_IDF_TARGET: ESP32S3
