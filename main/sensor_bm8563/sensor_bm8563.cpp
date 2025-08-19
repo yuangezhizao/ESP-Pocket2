@@ -29,8 +29,6 @@
  */
 #include "sensor_bm8563.h"
 
-#include "SensorPCF8563.hpp"
-
 static const char *TAG = "PCF8563(BM8563)";
 
 SensorPCF8563 rtc;

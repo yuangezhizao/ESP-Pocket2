@@ -57,4 +57,8 @@ extern "C"
 
 #ifdef __cplusplus
 }
+
+#include "SensorPCF8563.hpp"
+extern SensorPCF8563 rtc;
+
 #endif
