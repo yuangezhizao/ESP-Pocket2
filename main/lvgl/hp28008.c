@@ -25,6 +25,10 @@ static esp_lcd_touch_handle_t touch_handle = NULL;
 static lv_display_t *lvgl_disp = NULL;
 static lv_indev_t *lvgl_touch_indev = NULL;
 
+/* Clock display */
+static lv_obj_t *clock_label = NULL;
+static lv_timer_t *clock_timer = NULL;
+
 #if EXAMPLE_LCD_BL_USE_LEDC == (1)
 static void example_ledc_init(void)
 {
@@ -160,16 +164,17 @@ err:
 esp_err_t app_touch_init(void)
 {
     /* Initilize I2C */
-    ESP_LOGI(TAG_TOUCH, "[1/2] Initialize I2C bus");
-    const i2c_config_t i2c_conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = EXAMPLE_TOUCH_I2C_SDA,
-        .sda_pullup_en = GPIO_PULLUP_DISABLE, // Note: GPIO_PULLUP_ENABLE
-        .scl_io_num = EXAMPLE_TOUCH_I2C_SCL,
-        .scl_pullup_en = GPIO_PULLUP_DISABLE, // Note: GPIO_PULLUP_ENABLE
-        .master.clk_speed = EXAMPLE_TOUCH_I2C_CLK_HZ};
-    ESP_RETURN_ON_ERROR(i2c_param_config(EXAMPLE_TOUCH_I2C_NUM, &i2c_conf), TAG, "I2C configuration failed");
-    ESP_RETURN_ON_ERROR(i2c_driver_install(EXAMPLE_TOUCH_I2C_NUM, i2c_conf.mode, 0, 0, 0), TAG, "I2C initialization failed");
+    // ESP_LOGI(TAG_TOUCH, "[1/2] Initialize I2C bus");
+    // const i2c_config_t i2c_conf = {
+    //     .mode = I2C_MODE_MASTER,
+    //     .sda_io_num = EXAMPLE_TOUCH_I2C_SDA,
+    //     .sda_pullup_en = GPIO_PULLUP_DISABLE, // Note: GPIO_PULLUP_ENABLE
+    //     .scl_io_num = EXAMPLE_TOUCH_I2C_SCL,
+    //     .scl_pullup_en = GPIO_PULLUP_DISABLE, // Note: GPIO_PULLUP_ENABLE
+    //     .master.clk_speed = EXAMPLE_TOUCH_I2C_CLK_HZ};
+    // ESP_RETURN_ON_ERROR(i2c_param_config(EXAMPLE_TOUCH_I2C_NUM, &i2c_conf), TAG, "I2C configuration failed");
+    // ESP_RETURN_ON_ERROR(i2c_driver_install(EXAMPLE_TOUCH_I2C_NUM, i2c_conf.mode, 0, 0, 0), TAG, "I2C initialization failed");
+    ESP_LOGW(TAG_TOUCH, "[1/2] Using existing I2C bus");
 
     /* Initialize touch HW */
     ESP_LOGI(TAG_TOUCH, "[2/2] Initialize touch controller GT911");
@@ -260,6 +265,12 @@ static void _app_button_cb(lv_event_t *e)
     lv_disp_set_rotation(lvgl_disp, rotation);
 }
 
+static void _clock_timer_cb(lv_timer_t *timer)
+{
+    update_RTC_global_variable();
+    lv_label_set_text(clock_label, RTC_global_variable);
+}
+
 // static void app_main_display(void)
 void app_main_display(void)
 {
@@ -297,6 +308,16 @@ void app_main_display(void)
     lv_label_set_text(label, LV_SYMBOL_BELL " Hello world Espressif and LVGL " LV_SYMBOL_BELL "\n " LV_SYMBOL_WARNING " For simplier initialization, use BSP " LV_SYMBOL_WARNING);
 #endif
     lv_obj_align(label, LV_ALIGN_CENTER, 0, 20);
+
+    /* Clock Label */
+    clock_label = lv_label_create(scr);
+    lv_obj_set_width(clock_label, EXAMPLE_LCD_H_RES);
+    lv_obj_set_style_text_align(clock_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_label_set_text(clock_label, "Loading time...");
+    lv_obj_align(clock_label, LV_ALIGN_CENTER, 0, 80);
+
+    /* Start LVGL clock timer (for UI updates only) */
+    clock_timer = lv_timer_create(_clock_timer_cb, 1000, NULL);
 
     /* Button */
     lv_obj_t *btn = lv_btn_create(scr);

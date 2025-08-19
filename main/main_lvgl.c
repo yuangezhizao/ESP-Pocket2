@@ -17,6 +17,8 @@ void app_main(void)
     // Run bus scan
     i2c_drv_scan();
 
+    ESP_ERROR_CHECK(bm8563_init());
+
 #endif
 
     /* LCD HW initialization */

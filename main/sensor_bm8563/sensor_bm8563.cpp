@@ -121,7 +121,7 @@ void bm8563_loop()
         return;
     }
 
-    char buf[64];
+    char RTC_global_variable[32];
     struct tm timeinfo;
 
     while (1)
@@ -132,16 +132,16 @@ void bm8563_loop()
         // Format the output using the strftime function
         // For more formats, please refer to :
         // https://man7.org/linux/man-pages/man3/strftime.3.html
-        // size_t written = strftime(buf, 64, "%Y-%m-%d %H:%M:%S %Z %z", &timeinfo);
-        size_t written = strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S %Z(%z)", &timeinfo);
+        // size_t written = strftime(RTC_global_variable, 32, "%Y-%m-%d %H:%M:%S %Z(%z)", &timeinfo);
+        size_t written = strftime(RTC_global_variable, sizeof(RTC_global_variable), "%Y-%m-%d %H:%M:%S %Z(%z)", &timeinfo);
 
         if (written != 0)
         {
-            ESP_LOGI("RTC", "%s", buf);
+            ESP_LOGI(TAG, "%s", RTC_global_variable);
         }
         else
         {
-            ESP_LOGE("RTC", "strftime failed or buffer too small!");
+            ESP_LOGE(TAG, "strftime failed or buffer too small!");
         }
 
         vTaskDelay(pdMS_TO_TICKS(1000));

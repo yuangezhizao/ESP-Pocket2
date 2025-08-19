@@ -31,6 +31,8 @@
 
 #include "esp_lcd_touch_gt911.h"
 
+#include "i2c_app.h"
+
 /* LCD size */
 #define EXAMPLE_LCD_H_RES (240) // Note: DO NOT CHANGE
 #define EXAMPLE_LCD_V_RES (320) // Note: DO NOT CHANGE
