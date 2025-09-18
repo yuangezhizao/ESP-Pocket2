@@ -6,6 +6,7 @@ file(GLOB_RECURSE SENSOR_DRV2605_CPP_SOURCES ${CMAKE_SOURCE_DIR} "sensor_drv2605
 file(GLOB_RECURSE SENSOR_BM8563_CPP_SOURCES ${CMAKE_SOURCE_DIR} "sensor_bm8563/*.cpp")
 file(GLOB_RECURSE LVGL_C_SOURCES ${CMAKE_SOURCE_DIR} "lvgl/*.c")
 file(GLOB_RECURSE I2C_APP_CPP_SOURCES ${CMAKE_SOURCE_DIR} "i2c_app/*.cpp")
+file(GLOB_RECURSE LGFX_CPP_SOURCES ${CMAKE_SOURCE_DIR} "lgfx/*.cpp")
 
 idf_component_register(
     SRCS
@@ -17,12 +18,14 @@ idf_component_register(
     ${SENSOR_BM8563_CPP_SOURCES}
     ${LVGL_C_SOURCES}
     ${I2C_APP_CPP_SOURCES}
+    ${LGFX_CPP_SOURCES}
     # "main.c"
     # "main_axp202.c"
     # "main_i2c_scanner.c"
     # "main_drv2605.c"
     # "main_bm8563.c"
-    "main_lvgl.c"
+    # "main_lvgl.c"
+    "main_lgfx.c"
 
     INCLUDE_DIRS
     "."
@@ -34,6 +37,7 @@ idf_component_register(
     "sensor_bm8563"
     "lvgl"
     "i2c_app"
+    "lgfx"
 )
 
 lvgl_port_create_c_image("images/esp_logo.png" "images/" "ARGB8888" "NONE")
