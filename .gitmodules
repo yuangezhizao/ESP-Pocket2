@@ -4,3 +4,7 @@
 [submodule "components/SensorLib"]
 	path = components/SensorLib
 	url = https://github.com/yuangezhizao/SensorLib.git
+[submodule "components/LovyanGFX"]
+	path = components/LovyanGFX
+	url = https://github.com/yuangezhizao/LovyanGFX
+	branch = develop
