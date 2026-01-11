@@ -42,11 +42,11 @@ void app_main(void)
 {
 #if CONFIG_I2C_COMMUNICATION_METHOD_BUILTIN_RW || CONFIG_I2C_COMMUNICATION_METHOD_CALLBACK_RW
 
-    // ESP_ERROR_CHECK(i2c_drv_init());
+    ESP_ERROR_CHECK(i2c_drv_init());
 
     ESP_LOGI(TAG, "I2C initialized successfully");
 
-    ESP_ERROR_CHECK(axp202_init());
+    // ESP_ERROR_CHECK(axp202_init());
 
     // Run bus scan
     i2c_drv_scan();
