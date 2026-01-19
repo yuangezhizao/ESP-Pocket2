@@ -106,7 +106,7 @@
 
 /* LVGL settings */
 #define EXAMPLE_LVGL_TASK_PRIORITY 4 // Note: 2 in spi_lcd_touch_example_main.c#L72
-#define EXAMPLE_LVGL_TASK_STACK_SIZE (4 * 1024)
+#define EXAMPLE_LVGL_TASK_STACK_SIZE (8 * 1024)
 #define EXAMPLE_LVGL_TASK_AFFINITY -1
 #define EXAMPLE_LVGL_TASK_MAX_DELAY_MS 500
 #define EXAMPLE_LVGL_TICK_PERIOD_MS 5 // Note: 2 in spi_lcd_touch_example_main.c#L68
