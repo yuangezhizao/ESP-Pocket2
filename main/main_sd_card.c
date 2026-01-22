@@ -8,20 +8,9 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 
-#include <string.h>
-#include <sys/unistd.h>
-#include <sys/stat.h>
-#include "esp_vfs_fat.h"
-#include "sdmmc_cmd.h"
-#include "sd_test_io.h"
-#if SOC_SDMMC_IO_POWER_EXTERNAL
-#include "sd_pwr_ctrl_by_on_chip_ldo.h"
-#endif
-
+#include "sd_card.h"
 #include "i2c_driver.h"
 #include "axp202_port.h"
-
-#define EXAMPLE_MAX_CHAR_SIZE 64
 
 static const char *TAG = "MAIN-SD_CARD";
 
@@ -50,53 +39,6 @@ pin_configuration_t config = {
 #endif
 };
 #endif // CONFIG_EXAMPLE_DEBUG_PIN_CONNECTIONS
-
-// Pin assignments can be set in menuconfig, see "SD SPI Example Configuration" menu.
-// You can also change the pin assignments here by changing the following 4 lines.
-#define PIN_NUM_MISO CONFIG_EXAMPLE_PIN_MISO
-#define PIN_NUM_MOSI CONFIG_EXAMPLE_PIN_MOSI
-#define PIN_NUM_CLK CONFIG_EXAMPLE_PIN_CLK
-#define PIN_NUM_CS CONFIG_EXAMPLE_PIN_CS
-
-static esp_err_t s_example_write_file(const char *path, char *data)
-{
-    ESP_LOGI(TAG, "Opening file %s", path);
-    FILE *f = fopen(path, "w");
-    if (f == NULL)
-    {
-        ESP_LOGE(TAG, "Failed to open file for writing");
-        return ESP_FAIL;
-    }
-    fprintf(f, data);
-    fclose(f);
-    ESP_LOGI(TAG, "File written");
-
-    return ESP_OK;
-}
-
-static esp_err_t s_example_read_file(const char *path)
-{
-    ESP_LOGI(TAG, "Reading file %s", path);
-    FILE *f = fopen(path, "r");
-    if (f == NULL)
-    {
-        ESP_LOGE(TAG, "Failed to open file for reading");
-        return ESP_FAIL;
-    }
-    char line[EXAMPLE_MAX_CHAR_SIZE];
-    fgets(line, sizeof(line), f);
-    fclose(f);
-
-    // strip newline
-    char *pos = strchr(line, '\n');
-    if (pos)
-    {
-        *pos = '\0';
-    }
-    ESP_LOGI(TAG, "Read from file: '%s'", line);
-
-    return ESP_OK;
-}
 
 void app_main(void)
 {
