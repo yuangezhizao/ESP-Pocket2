@@ -12,6 +12,312 @@ static const char *TAG = "AXP202";
 
 XPowersPMU power;
 
+// LED2 软件状态；改状态后调用 axp202_gpio0_led_apply() 同步至 GPIO0 硬件
+static bool s_gpio0_led_on = true;
+
+static uint8_t axp202_gpio_ctl_reg(axp_gpio_t gpio)
+{
+    switch (gpio)
+    {
+    case AXP_GPIO_0:
+        return XPOWERS_AXP202_GPIO0_CTL;
+    case AXP_GPIO_1:
+        return XPOWERS_AXP202_GPIO1_CTL;
+    case AXP_GPIO_2:
+        return XPOWERS_AXP202_GPIO2_CTL;
+    case AXP_GPIO_3:
+        return XPOWERS_AXP202_GPIO3_CTL;
+    default:
+        return 0;
+    }
+}
+
+// 旧库 _axp202_gpio_*_select，类型见 axp20x.h
+// https://github.com/lewisxhe/AXP202X_Library/blob/master/src/axp20x.h
+static int axp202_gpio_mode_to_func(axp_gpio_t gpio, axp_gpio_mode_t mode)
+{
+    switch (gpio)
+    {
+    case AXP_GPIO_0:
+        switch (mode)
+        {
+        case AXP_IO_OUTPUT_LOW_MODE:
+            return 0;
+        case AXP_IO_OUTPUT_HIGH_MODE:
+            return 1;
+        case AXP_IO_INPUT_MODE:
+            return 2;
+        case AXP_IO_LDO_MODE:
+            return 3;
+        case AXP_IO_ADC_MODE:
+            return 4;
+        default:
+            return -1;
+        }
+    case AXP_GPIO_1:
+        switch (mode)
+        {
+        case AXP_IO_OUTPUT_LOW_MODE:
+            return 0;
+        case AXP_IO_OUTPUT_HIGH_MODE:
+            return 1;
+        case AXP_IO_INPUT_MODE:
+            return 2;
+        case AXP_IO_ADC_MODE:
+            return 4;
+        default:
+            return -1;
+        }
+    case AXP_GPIO_2:
+        switch (mode)
+        {
+        case AXP_IO_OUTPUT_LOW_MODE:
+            return 0;
+        case AXP_IO_FLOATING_MODE:
+            return 1;
+        case AXP_IO_INPUT_MODE:
+            return 2;
+        default:
+            return -1;
+        }
+    case AXP_GPIO_3:
+        switch (mode)
+        {
+        case AXP_IO_OPEN_DRAIN_OUTPUT_MODE:
+            return 0;
+        case AXP_IO_INPUT_MODE:
+            return 1;
+        default:
+            return -1;
+        }
+    default:
+        return -1;
+    }
+}
+
+// 旧库 setGPIOMode → _axp202_gpio_set
+// https://github.com/lewisxhe/AXP202X_Library/blob/master/src/axp20x.cpp#L1683-L1727
+esp_err_t axp202_setGPIOMode(axp_gpio_t gpio, axp_gpio_mode_t mode)
+{
+    uint8_t reg = axp202_gpio_ctl_reg(gpio);
+    if (reg == 0)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    int func = axp202_gpio_mode_to_func(gpio, mode);
+    if (func < 0)
+    {
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+
+    int val = power.readRegister(reg);
+    if (val < 0)
+    {
+        ESP_LOGE(TAG, "Failed to read GPIO%u_CTL", gpio);
+        return ESP_FAIL;
+    }
+
+    if (gpio == AXP_GPIO_3)
+    {
+        val = func ? (val | 0x04) : (val & ~0x04);
+    }
+    else
+    {
+        val = (val & 0xF8) | (uint8_t)func;
+    }
+
+    if (power.writeRegister(reg, val) != 0)
+    {
+        ESP_LOGE(TAG, "Failed to write GPIO%u_CTL", gpio);
+        return ESP_FAIL;
+    }
+
+    return ESP_OK;
+}
+
+// 旧库 gpioWrite → _axp202_gpio_write
+// https://github.com/lewisxhe/AXP202X_Library/blob/master/src/axp20x.cpp#L1839-L1871
+esp_err_t axp202_gpioWrite(axp_gpio_t gpio, uint8_t val)
+{
+    uint8_t reg = axp202_gpio_ctl_reg(gpio);
+    if (reg == 0)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    int ctl = power.readRegister(reg);
+    if (ctl < 0)
+    {
+        ESP_LOGE(TAG, "Failed to read GPIO%u_CTL", gpio);
+        return ESP_FAIL;
+    }
+
+    if (gpio <= AXP_GPIO_1)
+    {
+        ctl = val ? (ctl | 0x01) : (ctl & 0xF8);
+    }
+    else if (gpio == AXP_GPIO_2)
+    {
+        if (val)
+        {
+            return ESP_ERR_NOT_SUPPORTED;
+        }
+        ctl = (ctl & 0xF8) | 0x00;
+    }
+    else if (gpio == AXP_GPIO_3)
+    {
+        if (val)
+        {
+            return ESP_ERR_NOT_SUPPORTED;
+        }
+        ctl = ctl & ~0x02;
+    }
+
+    if (power.writeRegister(reg, ctl) != 0)
+    {
+        ESP_LOGE(TAG, "Failed to write GPIO%u_CTL", gpio);
+        return ESP_FAIL;
+    }
+
+    return ESP_OK;
+}
+
+// 旧库 gpioRead → _axp202_gpio_read
+// https://github.com/lewisxhe/AXP202X_Library/blob/master/src/axp20x.cpp#L1873-L1897
+int axp202_gpioRead(axp_gpio_t gpio)
+{
+    if (gpio <= AXP_GPIO_2)
+    {
+        int val = power.readRegister(XPOWERS_AXP202_GPIO012_SIGNAL);
+        if (val < 0)
+        {
+            return -1;
+        }
+        return (val >> (gpio + 4)) & 0x01;
+    }
+
+    if (gpio == AXP_GPIO_3)
+    {
+        int val = power.readRegister(XPOWERS_AXP202_GPIO3_CTL);
+        if (val < 0)
+        {
+            return -1;
+        }
+        return !(val & 0x01);
+    }
+
+    return -1;
+}
+
+static const char *axp202_gpio012_func_name(uint8_t func)
+{
+    switch (func & 0x07)
+    {
+    case 0:
+        return "Output Low";
+    case 1:
+        return "Output High";
+    case 2:
+        return "Input";
+    case 3:
+        return "LDOio";
+    case 4:
+        return "ADC";
+    case 6:
+    case 7:
+        return "Floating";
+    default:
+        return "Unknown";
+    }
+}
+
+static const char *axp202_gpio_mode_name(axp_gpio_t gpio)
+{
+    uint8_t reg = axp202_gpio_ctl_reg(gpio);
+    if (reg == 0)
+    {
+        return "Invalid";
+    }
+
+    int val = power.readRegister(reg);
+    if (val < 0)
+    {
+        return "Read Error";
+    }
+
+    if (gpio == AXP_GPIO_3)
+    {
+        return (val & 0x04) ? "Input" : "Open-Drain Output";
+    }
+
+    return axp202_gpio012_func_name((uint8_t)val);
+}
+
+static bool axp202_is_ldoio_enabled(void)
+{
+    int val = power.readRegister(XPOWERS_AXP202_GPIO0_CTL);
+    if (val < 0)
+    {
+        return false;
+    }
+    return (val & 0x07) == 0x03;
+}
+
+static const char *axp202_ldo3_mode_name(void)
+{
+    return power.isLDO3LDOMode() ? "DCIN(<Vbus)" : "LDO";
+}
+
+static const char *axp202_chgled_mode_name(void)
+{
+    switch (power.getChargingLedMode())
+    {
+    case XPOWERS_CHG_LED_OFF:
+        return "Off";
+    case XPOWERS_CHG_LED_BLINK_1HZ:
+        return "Blink 1Hz";
+    case XPOWERS_CHG_LED_BLINK_4HZ:
+        return "Blink 4Hz";
+    case XPOWERS_CHG_LED_ON:
+        return "On";
+    case XPOWERS_CHG_LED_CTRL_CHG:
+        return "Charge Ctrl";
+    default:
+        return "Unknown";
+    }
+}
+
+static void axp202_log_output_channels(void)
+{
+    ESP_LOGI(TAG, "DCDC=======================================================================");
+    ESP_LOGI(TAG, "DC2:     ENABLE: %s    Voltage:%u mV", power.isEnableDC2() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getDC2Voltage());
+    ESP_LOGI(TAG, "DC3:     ENABLE: %s    Voltage:%u mV", power.isEnableDC3() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getDC3Voltage());
+    ESP_LOGI(TAG, "LDO========================================================================");
+    ESP_LOGI(TAG, "LDO2:    ENABLE: %s    Voltage:%u mV", power.isEnableLDO2() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO2Voltage());
+    ESP_LOGI(TAG, "LDO3:    ENABLE: %s    Voltage:%u mV    Mode: %s", power.isEnableLDO3() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO3Voltage(), axp202_ldo3_mode_name());
+    ESP_LOGI(TAG, "LDO4:    ENABLE: %s    Voltage:%u mV", power.isEnableLDO4() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO4Voltage());
+    ESP_LOGI(TAG, "LDOio:   ENABLE: %s    Voltage:%u mV    Mode: %s", axp202_is_ldoio_enabled() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDOioVoltage(), axp202_gpio_mode_name(AXP_GPIO_0));
+    ESP_LOGI(TAG, "GPIO=======================================================================");
+    ESP_LOGI(TAG, "GPIO0(LDOio): Mode: %s", axp202_gpio_mode_name(AXP_GPIO_0));
+    ESP_LOGI(TAG, "GPIO1:   Mode: %s", axp202_gpio_mode_name(AXP_GPIO_1));
+    ESP_LOGI(TAG, "GPIO2:   Mode: %s", axp202_gpio_mode_name(AXP_GPIO_2));
+    ESP_LOGI(TAG, "GPIO3:   Mode: %s", axp202_gpio_mode_name(AXP_GPIO_3));
+    ESP_LOGI(TAG, "CHGLED:  Mode: %s", axp202_chgled_mode_name());
+    ESP_LOGI(TAG, "===========================================================================\n");
+}
+
+static void axp202_gpio0_led_apply(void)
+{
+    axp202_gpioWrite(AXP_GPIO_0, s_gpio0_led_on ? 1 : 0);
+}
+
+static void axp202_gpio0_led_toggle(void)
+{
+    s_gpio0_led_on = !s_gpio0_led_on;
+    axp202_gpio0_led_apply();
+}
+
 esp_err_t axp202_init()
 {
     ESP_LOGI(TAG, "===================================AXP202==================================");
@@ -104,7 +410,8 @@ esp_err_t axp202_init()
     // power.setLDO4Voltage(3300); // 音频供电
 
     // LDOio 1800~3300 mV, 100mV/step, IMAX=50mA
-    power.setLDOioVoltage(3300);
+    // GPIO0 已用于 LED2 数字输出，暂不启用 LDOio
+    // power.setLDOioVoltage(3300);
 
     // Enable power output channel
     power.disableDC2();
@@ -112,17 +419,10 @@ esp_err_t axp202_init()
     power.enableLDO2();
     power.enableLDO3();
     power.disableLDO4();
-    power.enableLDOio();
+    // power.enableLDOio();
 
-    ESP_LOGI(TAG, "DCDC=======================================================================");
-    ESP_LOGI(TAG, "DC2:     ENABLE: %s    Voltage:%u mV", power.isEnableDC2() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getDC2Voltage());
-    ESP_LOGI(TAG, "DC3:     ENABLE: %s    Voltage:%u mV", power.isEnableDC3() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getDC3Voltage());
-    ESP_LOGI(TAG, "LDO========================================================================");
-    ESP_LOGI(TAG, "LDO2:    ENABLE: %s    Voltage:%u mV", power.isEnableLDO2() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO2Voltage());
-    ESP_LOGI(TAG, "LDO3:    ENABLE: %s    Voltage:%u mV    Mode: %s", power.isEnableLDO3() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO3Voltage(), power.isLDO3LDOMode() ? "DCIN(<Vbus)" : "LDO");
-    ESP_LOGI(TAG, "LDO4:    ENABLE: %s    Voltage:%u mV", power.isEnableLDO4() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO4Voltage());
-    ESP_LOGI(TAG, "LDOio:   ENABLE: %s    Voltage:%u mV", power.isEnableLDOio() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDOioVoltage());
-    ESP_LOGI(TAG, "===========================================================================\n");
+    // GPIO0 用于 LED2（PMU_GPIO0，高电平点亮），默认亮（s_gpio0_led_on），PowerKey 短按 gpioWrite 切换
+    axp202_setGPIOMode(AXP_GPIO_0, s_gpio0_led_on ? AXP_IO_OUTPUT_HIGH_MODE : AXP_IO_OUTPUT_LOW_MODE);
 
     // Set the time of pressing the button to turn off
     power.setPowerKeyPressOffTime(XPOWERS_POWEROFF_10S);
@@ -193,6 +493,8 @@ esp_err_t axp202_init()
     * */
     power.setChargingLedMode(XPOWERS_CHG_LED_CTRL_CHG);
 
+    axp202_log_output_channels();
+
     // Disable all interrupts
     power.disableIRQ(XPOWERS_AXP202_ALL_IRQ);
     // Clear all interrupt flags
@@ -226,11 +528,6 @@ esp_err_t axp202_init()
     ESP_LOG_BUFFER_HEX(TAG, data, XPOWERS_AXP202_DATA_BUFFER_SIZE);
 
     ESP_LOGI(TAG, "===========================================================================\n");
-
-    // TODO
-    // 打开主板指示灯PIO0
-    // power.setGPIOMode(AXP_GPIO_0, AXP_IO_OUTPUT_HIGH_MODE); // 打开主板指示灯PIO0
-    // power.gpioWrite(AXP_GPIO_0, 1);
 
     // Set the timing after one minute, the isWdtExpireIrq will be triggered in the loop interrupt function
     power.setTimerout(1);
@@ -366,6 +663,9 @@ void axp202_isr_handler()
     if (power.isPekeyShortPressIrq())
     {
         ESP_LOGI(TAG, "isPekeyShortPress");
+
+        axp202_gpio0_led_toggle();
+        ESP_LOGI(TAG, "LED2 toggled: %s", s_gpio0_led_on ? "ON" : "OFF");
 
         axp202_show_info();
 
