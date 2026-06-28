@@ -29,14 +29,14 @@
  */
 #include "sensor_drv2605.h"
 
-#include "SensorDRV2605.hpp"
+#include "HapticDrivers.hpp"
 
 static const char *TAG = "DRV2605";
 
 #define DRV2605_I2C_ADDRESS 0x5A
 #define MAX_EFFECT_ID 123
 
-SensorDRV2605 drv;
+HapticDriver_DRV2605 drv;
 
 // extern uint32_t hal_callback(SensorCommCustomHal::Operation op, void *param1, void *param2);
 
@@ -245,8 +245,8 @@ esp_err_t drv2605_init()
 #endif // CONFIG_I2C_COMMUNICATION_METHOD_BUILTIN_RW
 
     // Use LRA (Linear Resonance Actuator) mode.
-    drv.useLRA();
-    // drv.useERM();
+    drv.setActuatorType(HapticActuatorType::LRA);
+    // drv.setActuatorType(HapticActuatorType::ERM);
 
     // Select the waveform Library to use
     // 0 = Empty, 1-5 are ERM, 6 is LRA.
@@ -254,7 +254,7 @@ esp_err_t drv2605_init()
 
     // I2C trigger by sending 'run' command
     // default, internal trigger when sending RUN command
-    drv.setMode(SensorDRV2605::MODE_INTTRIG);
+    drv.setMode(HapticMode::INTERNAL_TRIGGER);
 
     init_done = true;
 
