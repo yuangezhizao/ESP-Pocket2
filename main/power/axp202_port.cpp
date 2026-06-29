@@ -4,7 +4,16 @@
 
 #define XPOWERS_CHIP_AXP202
 #include "XPowersLib.h"
+#include <cstdarg>
+#include <cstdio>
+#include <cstring>
+
 static const char *TAG = "AXP202";
+
+#define AXP202_LOG_LINE_WIDTH   74
+#define AXP202_LOG_LABEL_STATUS 24
+#define AXP202_LOG_LABEL_RAIL   12
+#define AXP202_LOG_LABEL_CONFIG 20
 
 #define MY_AXP202_SLAVE_ADDRESS (0x34)
 #define CHANNEL_ENABLE_ICON "✅"
@@ -409,37 +418,164 @@ static const char *axp202_active_input_name(void)
     return "UNKNOWN";
 }
 
+static void axp202_log_padded_line(const char *prefix, char pad_char)
+{
+    char line[AXP202_LOG_LINE_WIDTH + 1];
+    size_t prefix_len = prefix ? strlen(prefix) : 0;
+    if (prefix_len > AXP202_LOG_LINE_WIDTH)
+    {
+        prefix_len = AXP202_LOG_LINE_WIDTH;
+    }
+    if (prefix_len > 0)
+    {
+        memcpy(line, prefix, prefix_len);
+    }
+    memset(line + prefix_len, pad_char, AXP202_LOG_LINE_WIDTH - prefix_len);
+    line[AXP202_LOG_LINE_WIDTH] = '\0';
+    ESP_LOGI(TAG, "%s", line);
+}
+
+static void axp202_log_banner(const char *title)
+{
+    axp202_log_padded_line(title, '=');
+}
+
+static void axp202_log_footer(void)
+{
+    char line[AXP202_LOG_LINE_WIDTH + 2];
+
+    memset(line, '=', AXP202_LOG_LINE_WIDTH);
+    line[AXP202_LOG_LINE_WIDTH] = '\n';
+    line[AXP202_LOG_LINE_WIDTH + 1] = '\0';
+    ESP_LOGI(TAG, "%s", line);
+}
+
+static void axp202_log_runtime_banner(void)
+{
+    const char *title = "AXP202";
+    const size_t title_len = strlen(title);
+    const size_t pad_total = AXP202_LOG_LINE_WIDTH - title_len;
+    const size_t pad_left = pad_total / 2;
+    char line[AXP202_LOG_LINE_WIDTH + 1];
+
+    memset(line, '=', pad_left);
+    memcpy(line + pad_left, title, title_len);
+    memset(line + pad_left + title_len, '=', AXP202_LOG_LINE_WIDTH - pad_left - title_len);
+    line[AXP202_LOG_LINE_WIDTH] = '\0';
+    ESP_LOGI(TAG, "%s", line);
+}
+
+static void axp202_log_section(unsigned n, unsigned total, const char *title)
+{
+    char prefix[48];
+    snprintf(prefix, sizeof(prefix), "[%u/%u] %s ", n, total, title);
+    axp202_log_padded_line(prefix, '-');
+}
+
+static void axp202_log_field_w(unsigned idx, unsigned label_w, const char *label, const char *fmt, ...)
+{
+    char value[128];
+    va_list args;
+
+    va_start(args, fmt);
+    vsnprintf(value, sizeof(value), fmt, args);
+    va_end(args);
+    ESP_LOGI(TAG, "  %u. %-*s : %s", idx, label_w, label, value);
+}
+
+static const char *axp202_poweroff_time_name(uint8_t opt)
+{
+    switch (opt)
+    {
+    case XPOWERS_POWEROFF_4S:
+        return "4 Second";
+    case XPOWERS_POWEROFF_6S:
+        return "6 Second";
+    case XPOWERS_POWEROFF_8S:
+        return "8 Second";
+    case XPOWERS_POWEROFF_10S:
+        return "10 Second";
+    default:
+        return "Unknown";
+    }
+}
+
+static const char *axp202_poweron_time_name(uint8_t opt)
+{
+    switch (opt)
+    {
+    case XPOWERS_POWERON_128MS:
+        return "128 Ms";
+    case XPOWERS_POWERON_512MS:
+        return "512 Ms";
+    case XPOWERS_POWERON_1S:
+        return "1 Second";
+    case XPOWERS_POWERON_2S:
+        return "2 Second";
+    default:
+        return "Unknown";
+    }
+}
+
+static void axp202_log_rail(unsigned idx, const char *name, bool enabled, uint16_t mv, const char *mode)
+{
+    const char *icon = enabled ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON;
+
+    if (mode != nullptr)
+    {
+        axp202_log_field_w(idx, AXP202_LOG_LABEL_RAIL, name, "ENABLE %s    Voltage : %4u mV    Mode : %s", icon, mv, mode);
+    }
+    else
+    {
+        axp202_log_field_w(idx, AXP202_LOG_LABEL_RAIL, name, "ENABLE %s    Voltage : %4u mV", icon, mv);
+    }
+}
+
 static void axp202_log_pmu_config(void)
 {
-    ESP_LOGI(TAG, "PMU Config (Input/Charge)==================================================");
-    ESP_LOGI(TAG, "SysPowerDownVoltage: %u mV", power.getSysPowerDownVoltage());
-    ESP_LOGI(TAG, "VbusVoltageLimit: %s    VbusCurrentLimit: %s",
-             axp202_vbus_vol_limit_name(power.getVbusVoltageLimit()),
-             axp202_vbus_cur_limit_name(power.getVbusCurrentLimit()));
-    ESP_LOGI(TAG, "ChargeTargetVoltage: %s    ChargerConstantCurr: %s",
-             axp202_chg_target_vol_name(power.getChargeTargetVoltage()),
-             axp202_chg_const_curr_name(power.getChargerConstantCurr()));
-    ESP_LOGI(TAG, "===========================================================================\n");
+    axp202_log_banner("PMU Config (Input/Charge)");
+    axp202_log_section(1, 1, "Input / Charge");
+    axp202_log_field_w(1, AXP202_LOG_LABEL_CONFIG, "SysPowerDownVoltage", "%u mV", power.getSysPowerDownVoltage());
+    axp202_log_field_w(2, AXP202_LOG_LABEL_CONFIG, "VbusVoltageLimit", "%s",
+                       axp202_vbus_vol_limit_name(power.getVbusVoltageLimit()));
+    axp202_log_field_w(3, AXP202_LOG_LABEL_CONFIG, "VbusCurrentLimit", "%s",
+                       axp202_vbus_cur_limit_name(power.getVbusCurrentLimit()));
+    axp202_log_field_w(4, AXP202_LOG_LABEL_CONFIG, "ChargeTargetVoltage", "%s",
+                       axp202_chg_target_vol_name(power.getChargeTargetVoltage()));
+    axp202_log_field_w(5, AXP202_LOG_LABEL_CONFIG, "ChargerConstantCurr", "%s",
+                       axp202_chg_const_curr_name(power.getChargerConstantCurr()));
+    axp202_log_footer();
 }
 
 static void axp202_log_output_channels(void)
 {
-    ESP_LOGI(TAG, "PMU Output (Rails/GPIO)====================================================");
-    ESP_LOGI(TAG, "DCDC=======================================================================");
-    ESP_LOGI(TAG, "DC2:     ENABLE: %s    Voltage:%u mV", power.isEnableDC2() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getDC2Voltage());
-    ESP_LOGI(TAG, "DC3:     ENABLE: %s    Voltage:%u mV", power.isEnableDC3() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getDC3Voltage());
-    ESP_LOGI(TAG, "LDO========================================================================");
-    ESP_LOGI(TAG, "LDO2:    ENABLE: %s    Voltage:%u mV", power.isEnableLDO2() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO2Voltage());
-    ESP_LOGI(TAG, "LDO3:    ENABLE: %s    Voltage:%u mV    Mode: %s", power.isEnableLDO3() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO3Voltage(), axp202_ldo3_mode_name());
-    ESP_LOGI(TAG, "LDO4:    ENABLE: %s    Voltage:%u mV", power.isEnableLDO4() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDO4Voltage());
-    ESP_LOGI(TAG, "LDOio:   ENABLE: %s    Voltage:%u mV    Mode: %s", axp202_is_ldoio_enabled() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON, power.getLDOioVoltage(), axp202_gpio_mode_name(AXP_GPIO_0));
-    ESP_LOGI(TAG, "GPIO=======================================================================");
-    ESP_LOGI(TAG, "GPIO0(LDOio): Mode: %s", axp202_gpio_mode_name(AXP_GPIO_0));
-    ESP_LOGI(TAG, "GPIO1:   Mode: %s", axp202_gpio_mode_name(AXP_GPIO_1));
-    ESP_LOGI(TAG, "GPIO2:   Mode: %s", axp202_gpio_mode_name(AXP_GPIO_2));
-    ESP_LOGI(TAG, "GPIO3:   Mode: %s", axp202_gpio_mode_name(AXP_GPIO_3));
-    ESP_LOGI(TAG, "CHGLED:  Mode: %s", axp202_chgled_mode_name());
-    ESP_LOGI(TAG, "===========================================================================\n");
+    axp202_log_banner("PMU Output (Rails/GPIO)");
+    axp202_log_section(1, 3, "DCDC");
+    axp202_log_rail(1, "DC2", power.isEnableDC2(), power.getDC2Voltage(), nullptr);
+    axp202_log_rail(2, "DC3", power.isEnableDC3(), power.getDC3Voltage(), nullptr);
+    axp202_log_section(2, 3, "LDO");
+    axp202_log_rail(1, "LDO2", power.isEnableLDO2(), power.getLDO2Voltage(), nullptr);
+    axp202_log_rail(2, "LDO3", power.isEnableLDO3(), power.getLDO3Voltage(), axp202_ldo3_mode_name());
+    axp202_log_rail(3, "LDO4", power.isEnableLDO4(), power.getLDO4Voltage(), nullptr);
+    axp202_log_rail(4, "LDOio", axp202_is_ldoio_enabled(), power.getLDOioVoltage(), axp202_gpio_mode_name(AXP_GPIO_0));
+    axp202_log_section(3, 3, "GPIO");
+    axp202_log_field_w(1, AXP202_LOG_LABEL_RAIL, "GPIO0(LDOio)", "Mode : %s", axp202_gpio_mode_name(AXP_GPIO_0));
+    axp202_log_field_w(2, AXP202_LOG_LABEL_RAIL, "GPIO1", "Mode : %s", axp202_gpio_mode_name(AXP_GPIO_1));
+    axp202_log_field_w(3, AXP202_LOG_LABEL_RAIL, "GPIO2", "Mode : %s", axp202_gpio_mode_name(AXP_GPIO_2));
+    axp202_log_field_w(4, AXP202_LOG_LABEL_RAIL, "GPIO3", "Mode : %s", axp202_gpio_mode_name(AXP_GPIO_3));
+    axp202_log_field_w(5, AXP202_LOG_LABEL_RAIL, "CHGLED", "Mode : %s", axp202_chgled_mode_name());
+    axp202_log_footer();
+}
+
+static void axp202_log_power_key(void)
+{
+    axp202_log_banner("Power Key");
+    axp202_log_section(1, 1, "Timing");
+    axp202_log_field_w(1, AXP202_LOG_LABEL_CONFIG, "PowerKeyPressOffTime", "%s",
+                       axp202_poweroff_time_name(power.getPowerKeyPressOffTime()));
+    axp202_log_field_w(2, AXP202_LOG_LABEL_CONFIG, "PowerKeyPressOnTime", "%s",
+                       axp202_poweron_time_name(power.getPowerKeyPressOnTime()));
+    axp202_log_footer();
 }
 
 static void axp202_gpio0_led_apply(void)
@@ -455,7 +591,7 @@ static void axp202_gpio0_led_toggle(void)
 
 esp_err_t axp202_init()
 {
-    ESP_LOGI(TAG, "===================================AXP202==================================");
+    axp202_log_runtime_banner();
 
     ESP_LOGW(TAG, "MY_AXP202_SLAVE_ADDRESS: 0x%x", MY_AXP202_SLAVE_ADDRESS);
 
@@ -509,7 +645,7 @@ esp_err_t axp202_init()
 
     ESP_LOGI(TAG, "getID: 0x%x", power.getChipID());
 
-    ESP_LOGI(TAG, "===========================================================================\n");
+    axp202_log_footer();
 
     // Set the minimum system operating voltage inside the PMU,
     // below this value will shut down the PMU
@@ -561,49 +697,10 @@ esp_err_t axp202_init()
 
     // Set the time of pressing the button to turn off
     power.setPowerKeyPressOffTime(XPOWERS_POWEROFF_10S);
-    uint8_t opt = power.getPowerKeyPressOffTime();
-    ESP_LOGI(TAG, "PowerKeyPressOffTime:");
-    switch (opt)
-    {
-    case XPOWERS_POWEROFF_4S:
-        ESP_LOGI(TAG, "4 Second");
-        break;
-    case XPOWERS_POWEROFF_6S:
-        ESP_LOGI(TAG, "6 Second");
-        break;
-    case XPOWERS_POWEROFF_8S:
-        ESP_LOGI(TAG, "8 Second");
-        break;
-    case XPOWERS_POWEROFF_10S:
-        ESP_LOGI(TAG, "10 Second");
-        break;
-    default:
-        break;
-    }
 
     // Set the button power-on press time
     power.setPowerKeyPressOnTime(XPOWERS_POWERON_2S);
-    opt = power.getPowerKeyPressOnTime();
-    ESP_LOGI(TAG, "PowerKeyPressOnTime:");
-    switch (opt)
-    {
-    case XPOWERS_POWERON_128MS:
-        ESP_LOGI(TAG, "128 Ms");
-        break;
-    case XPOWERS_POWERON_512MS:
-        ESP_LOGI(TAG, "512 Ms");
-        break;
-    case XPOWERS_POWERON_1S:
-        ESP_LOGI(TAG, "1 Second");
-        break;
-    case XPOWERS_POWERON_2S:
-        ESP_LOGI(TAG, "2 Second");
-        break;
-    default:
-        break;
-    }
-
-    ESP_LOGI(TAG, "===========================================================================\n");
+    axp202_log_power_key();
 
     // It is necessary to disable the detection function of the TS pin on the board
     // without the battery temperature detection function, otherwise it will cause abnormal charging
@@ -665,7 +762,7 @@ esp_err_t axp202_init()
     power.readDataBuffer(data, XPOWERS_AXP202_DATA_BUFFER_SIZE);
     ESP_LOG_BUFFER_HEX(TAG, data, XPOWERS_AXP202_DATA_BUFFER_SIZE);
 
-    ESP_LOGI(TAG, "===========================================================================\n");
+    axp202_log_footer();
 
     // Set the timing after one minute, the isWdtExpireIrq will be triggered in the loop interrupt function
     power.setTimerout(1);
@@ -675,43 +772,53 @@ esp_err_t axp202_init()
 
 void axp202_show_info()
 {
-    ESP_LOGI(TAG, "==================================AXP202==================================");
+    axp202_log_runtime_banner();
 
-    ESP_LOGI(TAG, "--- Power Path -----------------------------------------------------------");
-    ESP_LOGI(TAG, "ActiveInput: %s", axp202_active_input_name());
-    ESP_LOGI(TAG, "STATUS: 0x%02X", power.status());
-    ESP_LOGI(TAG, "isVbusIn: %s    isAcinIn: %s", power.isVbusIn() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON,
-             power.isAcinIn() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
-    ESP_LOGI(TAG, "isAcinEfficient: %s    isAcinVbusStart: %s",
-             power.isAcinEfficient() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON,
-             power.isAcinVbusStart() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    axp202_log_section(1, 4, "Power Path");
+    axp202_log_field_w(1, AXP202_LOG_LABEL_STATUS, "ActiveInput", "%s", axp202_active_input_name());
+    axp202_log_field_w(2, AXP202_LOG_LABEL_STATUS, "STATUS", "0x%02X", power.status());
+    axp202_log_field_w(3, AXP202_LOG_LABEL_STATUS, "isVbusIn", "%s",
+                       power.isVbusIn() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    axp202_log_field_w(4, AXP202_LOG_LABEL_STATUS, "isAcinIn", "%s",
+                       power.isAcinIn() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    axp202_log_field_w(5, AXP202_LOG_LABEL_STATUS, "isAcinEfficient", "%s",
+                       power.isAcinEfficient() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    axp202_log_field_w(6, AXP202_LOG_LABEL_STATUS, "isAcinVbusStart", "%s",
+                       power.isAcinVbusStart() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
 
-    ESP_LOGI(TAG, "--- Input ADC ------------------------------------------------------------");
-    ESP_LOGI(TAG, "VBUS  Voltage: %4d mV    Current: %6.2f mA", power.getVbusVoltage(), power.getVbusCurrent());
-    ESP_LOGI(TAG, "ACIN  Voltage: %4d mV    Current: %6.2f mA", power.getAcinVoltage(), power.getAcinCurrent());
+    axp202_log_section(2, 4, "Input ADC");
+    axp202_log_field_w(1, AXP202_LOG_LABEL_STATUS, "VBUS Voltage", "%4d mV    Current : %6.2f mA",
+                       power.getVbusVoltage(), power.getVbusCurrent());
+    axp202_log_field_w(2, AXP202_LOG_LABEL_STATUS, "ACIN Voltage", "%4d mV    Current : %6.2f mA",
+                       power.getAcinVoltage(), power.getAcinCurrent());
 
-    ESP_LOGI(TAG, "--- System ---------------------------------------------------------------");
-    ESP_LOGI(TAG, "IPSOUT Voltage: %d mV", power.getSystemVoltage());
-    ESP_LOGI(TAG, "Temperature: %.2f°C    isOverTemperature: %s", power.getTemperature(),
-             power.isOverTemperature() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    axp202_log_section(3, 4, "System");
+    axp202_log_field_w(1, AXP202_LOG_LABEL_STATUS, "IPSOUT Voltage", "%d mV", power.getSystemVoltage());
+    axp202_log_field_w(2, AXP202_LOG_LABEL_STATUS, "Temperature", "%.2f °C", power.getTemperature());
+    axp202_log_field_w(3, AXP202_LOG_LABEL_STATUS, "isOverTemperature", "%s",
+                       power.isOverTemperature() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
 
-    ESP_LOGI(TAG, "--- Battery --------------------------------------------------------------");
-    ESP_LOGI(TAG, "isBatteryConnect: %s", power.isBatteryConnect() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
-    ESP_LOGI(TAG, "isCharging: %s    isDischarge: %s",
-             power.isCharging() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON,
-             power.isDischarge() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
-    ESP_LOGI(TAG, "isChargeCurrLessPreset: %s    isBattInActiveMode: %s",
-             power.isChargeCurrLessPreset() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON,
-             power.isBattInActiveMode() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    axp202_log_section(4, 4, "Battery");
+    axp202_log_field_w(1, AXP202_LOG_LABEL_STATUS, "isBatteryConnect", "%s",
+                       power.isBatteryConnect() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    axp202_log_field_w(2, AXP202_LOG_LABEL_STATUS, "isCharging", "%s",
+                       power.isCharging() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    axp202_log_field_w(3, AXP202_LOG_LABEL_STATUS, "isDischarge", "%s",
+                       power.isDischarge() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    axp202_log_field_w(4, AXP202_LOG_LABEL_STATUS, "isChargeCurrLessPreset", "%s",
+                       power.isChargeCurrLessPreset() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    axp202_log_field_w(5, AXP202_LOG_LABEL_STATUS, "isBattInActiveMode", "%s",
+                       power.isBattInActiveMode() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
 
     if (power.isBatteryConnect())
     {
-        ESP_LOGI(TAG, "Batt Voltage: %d mV    Percent: %d %%", power.getBattVoltage(), power.getBatteryPercent());
-        ESP_LOGI(TAG, "Batt Discharge: %.2f mA    Charge: %.2f mA",
-                 power.getBattDischargeCurrent(), power.getBatteryChargeCurrent());
+        axp202_log_field_w(6, AXP202_LOG_LABEL_STATUS, "Batt Voltage", "%d mV    Percent : %d %%",
+                             power.getBattVoltage(), power.getBatteryPercent());
+        axp202_log_field_w(7, AXP202_LOG_LABEL_STATUS, "Batt Discharge", "%.2f mA    Charge : %.2f mA",
+                           power.getBattDischargeCurrent(), power.getBatteryChargeCurrent());
     }
 
-    ESP_LOGI(TAG, "==========================================================================\n");
+    axp202_log_footer();
 }
 
 void axp202_enter_sleep()
