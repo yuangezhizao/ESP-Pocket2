@@ -10,6 +10,10 @@ static const char *TAG = "AXP202";
 #define CHANNEL_ENABLE_ICON "✅"
 #define CHANNEL_DISABLE_ICON "❌"
 
+// REG82H bit4/5: ACIN current/voltage ADC (XPowersLib MONITOR_AC_* is private)
+#define AXP202_ADC_ACIN_CURRENT (1U << 4)
+#define AXP202_ADC_ACIN_VOLTAGE (1U << 5)
+
 XPowersPMU power;
 
 // LED2 软件状态；改状态后调用 axp202_gpio0_led_apply() 同步至 GPIO0 硬件
@@ -480,6 +484,7 @@ esp_err_t axp202_init()
     // Enable internal ADC detection
     power.enableBattDetection();
     power.enableVbusVoltageMeasure();
+    power.enableAdcChannel(AXP202_ADC_ACIN_CURRENT | AXP202_ADC_ACIN_VOLTAGE);
     power.enableBattVoltageMeasure();
     power.enableSystemVoltageMeasure();
 
@@ -502,6 +507,7 @@ esp_err_t axp202_init()
     // Enable the required interrupt function
     power.enableIRQ(
         XPOWERS_AXP202_BAT_INSERT_IRQ | XPOWERS_AXP202_BAT_REMOVE_IRQ |      // BATTERY
+        XPOWERS_AXP202_ACIN_CONNECT_IRQ | XPOWERS_AXP202_ACIN_REMOVED_IRQ |  // ACIN
         XPOWERS_AXP202_VBUS_INSERT_IRQ | XPOWERS_AXP202_VBUS_REMOVE_IRQ |    // VBUS
         XPOWERS_AXP202_PKEY_SHORT_IRQ | XPOWERS_AXP202_PKEY_LONG_IRQ |       // POWER KEY
         XPOWERS_AXP202_BAT_CHG_DONE_IRQ | XPOWERS_AXP202_BAT_CHG_START_IRQ | // CHARGE
@@ -542,6 +548,9 @@ void axp202_show_info()
     ESP_LOGI(TAG, "isDischarge: %s", power.isDischarge() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
     ESP_LOGI(TAG, "isVbusIn: %s", power.isVbusIn() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
     ESP_LOGI(TAG, "isAcinIn: %s", power.isAcinIn() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    ESP_LOGI(TAG, "STATUS: 0x%02X", power.status());
+    ESP_LOGI(TAG, "isAcinEfficient: %s", power.isAcinEfficient() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
+    ESP_LOGI(TAG, "isAcinVbusStart: %s", power.isAcinVbusStart() ? CHANNEL_ENABLE_ICON : CHANNEL_DISABLE_ICON);
 
     ESP_LOGI(TAG, "getVbusVoltage: %d mV", power.getVbusVoltage());
     ESP_LOGI(TAG, "getVbusCurrent: %.2f mA", power.getVbusCurrent());
