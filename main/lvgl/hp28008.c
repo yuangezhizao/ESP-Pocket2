@@ -194,10 +194,20 @@ esp_err_t app_touch_init(void)
         // }, // Note: DO NOT NEED
     };
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
-    const esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
+    esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
+#if CONFIG_HP28008_USE_I2C_MASTER_BUS
+    tp_io_config.scl_speed_hz = EXAMPLE_TOUCH_I2C_CLK_HZ;
+#else
+    tp_io_config.scl_speed_hz = 0; /* v1 legacy driver rejects non-zero */
+#endif
 
     // Attach the TOUCH to the I2C bus
-    ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)EXAMPLE_TOUCH_I2C_NUM, &tp_io_config, &tp_io_handle), TAG, "");
+#if CONFIG_HP28008_USE_I2C_MASTER_BUS
+    extern i2c_master_bus_handle_t bus_handle;
+    ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_i2c(bus_handle, &tp_io_config, &tp_io_handle), TAG_TOUCH, "touch i2c v2 failed");
+#else
+    ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)EXAMPLE_TOUCH_I2C_NUM, &tp_io_config, &tp_io_handle), TAG_TOUCH, "touch i2c v1 failed");
+#endif
     return esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, &touch_handle);
 }
 

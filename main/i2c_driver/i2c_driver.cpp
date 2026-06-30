@@ -349,7 +349,6 @@ void i2c_drv_scan()
         }
         printf("\r\n");
     }
-    printf("\n\n\n");
 #else
     uint8_t address;
     printf("Scan I2C Devices:\n");

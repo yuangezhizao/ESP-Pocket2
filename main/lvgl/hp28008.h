@@ -14,7 +14,7 @@
 #include "esp_idf_version.h"
 #include "esp_check.h"
 
-#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)) && defined(CONFIG_XPOWERS_ESP_IDF_NEW_API)
+#if CONFIG_HP28008_USE_I2C_MASTER_BUS
 #include "driver/i2c_master.h"
 #else
 #include "driver/i2c.h"

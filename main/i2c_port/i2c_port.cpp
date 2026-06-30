@@ -178,10 +178,21 @@ esp_err_t i2c_init(void)
 #if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)) && defined(CONFIG_XPOWERS_ESP_IDF_NEW_API)
 
 #include "soc/clk_tree_defs.h"
-i2c_master_bus_handle_t bus_handle;
 
-// * Using the new API of esp-idf 5.x, you need to pass the I2C BUS handle,
-// * which is useful when the bus shares multiple devices.
+#if defined(CONFIG_SENSORLIB_ESP_IDF_NEW_API)
+
+#include "i2c_driver.h"
+
+extern i2c_master_bus_handle_t bus_handle;
+
+esp_err_t i2c_init(void)
+{
+    return i2c_drv_init();
+}
+
+#else
+
+i2c_master_bus_handle_t bus_handle;
 
 esp_err_t i2c_init(void)
 {
@@ -194,6 +205,8 @@ esp_err_t i2c_init(void)
     i2c_bus_config.glitch_ignore_cnt = 7;
     return i2c_new_master_bus(&i2c_bus_config, &bus_handle);
 }
+
+#endif
 
 #endif // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5,0,0)
 
