@@ -84,7 +84,7 @@ esp_err_t bm8563_init()
 #else
 
     ESP_LOGI(TAG, "Implemented using built-in read and write methods (Use lower version < 5.0 API)");
-    if (rtc.begin((i2c_port_t)CONFIG_I2C_MASTER_PORT_NUM, CONFIG_SENSOR_SDA, CONFIG_SENSOR_SCL))
+    if (rtc.begin((i2c_port_t)CONFIG_I2C_MASTER_PORT_NUM, -1, -1))
     {
         ESP_LOGI(TAG, "Initializing PCF8563(BM8563) real-time clock successfully!");
     }
