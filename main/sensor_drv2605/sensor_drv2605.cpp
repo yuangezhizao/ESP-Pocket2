@@ -281,7 +281,7 @@ esp_err_t drv2605_init()
     // * which is useful when the bus shares multiple devices.
     extern i2c_master_bus_handle_t bus_handle;
 
-    if (drv.begin(bus_handle))
+    if (drv.begin(bus_handle, DRV2605_I2C_ADDRESS))
     {
         ESP_LOGI(TAG, "Initialization of DRV2605 haptic driver is successful!");
     }
