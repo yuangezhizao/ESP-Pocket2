@@ -35,6 +35,7 @@ static const char *TAG = "DRV2605";
 
 #define DRV2605_I2C_ADDRESS 0x5A
 #define MAX_EFFECT_ID 123
+#define DRV2605_WAVEFORM_LIBRARY 6
 
 /** TI DRV2605 ROM waveform library effect metadata (ID 1-123). */
 struct Drv2605EffectInfo
@@ -311,7 +312,29 @@ esp_err_t drv2605_init()
 
     // Select the waveform Library to use
     // 0 = Empty, 1-5 are ERM, 6 is LRA.
-    drv.selectLibrary(6);
+    drv.selectLibrary(DRV2605_WAVEFORM_LIBRARY);
+
+    const HapticActuatorType actuator = drv.getActuatorType();
+    ESP_LOGI(TAG, "Actuator: %s / %s  |  Library: %u",
+             actuator == HapticActuatorType::LRA ? "LRA" : "ERM",
+             actuator == HapticActuatorType::LRA ? "线性谐振马达" : "偏心旋转马达",
+             DRV2605_WAVEFORM_LIBRARY);
+
+    ESP_LOGI(TAG, "Auto-calibrating... / 正在自动校准...");
+    const int cal_result = drv.autoCal();
+    if (cal_result >= 0)
+    {
+        ESP_LOGI(TAG, "Auto-cal OK, comp=%d / 自动校准成功，补偿值=%d", cal_result, cal_result);
+        const uint32_t f0_hz = drv.getF0();
+        if (f0_hz > 0)
+        {
+            ESP_LOGI(TAG, "LRA F0: %lu Hz / 谐振频率: %lu Hz", (unsigned long)f0_hz, (unsigned long)f0_hz);
+        }
+    }
+    else
+    {
+        ESP_LOGW(TAG, "Auto-cal failed, using defaults / 自动校准失败，使用默认参数");
+    }
 
     // I2C trigger by sending 'run' command
     // default, internal trigger when sending RUN command
