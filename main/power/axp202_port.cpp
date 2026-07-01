@@ -988,4 +988,86 @@ void axp202_isr_handler()
     power.clearIrqStatus();
 }
 
+// 读取一份面向 UI 的 AXP202 实时快照（封装内部 C++ XPowersPMU 对象）。
+esp_err_t axp202_read_dashboard(axp202_dashboard_t *out)
+{
+    if (out == nullptr)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    memset(out, 0, sizeof(*out));
+
+    // 电源输出轨：电压(mV) 与使能状态
+    out->dcdc2_mv = power.getDC2Voltage();
+    out->dcdc3_mv = power.getDC3Voltage();
+    out->ldo2_mv = power.getLDO2Voltage();
+    out->ldo3_mv = power.getLDO3Voltage();
+    out->ldo4_mv = power.getLDO4Voltage();
+    out->dcdc2_on = power.isEnableDC2();
+    out->dcdc3_on = power.isEnableDC3();
+    out->ldo2_on = power.isEnableLDO2();
+    out->ldo3_on = power.isEnableLDO3();
+    out->ldo4_on = power.isEnableLDO4();
+    out->exten_on = power.isEnableExternalPin();
+
+    // 电池
+    out->batt_connected = power.isBatteryConnect();
+    out->charging = power.isCharging();
+    out->vbat_v = power.getBattVoltage() / 1000.0f;
+    out->batt_pct = power.getBatteryPercent();
+    // 充电时取充电电流(正)，否则取放电电流并记为负值
+    out->ibat_ma = out->charging ? power.getBatteryChargeCurrent()
+                                 : -power.getBattDischargeCurrent();
+
+    // 输入电源
+    out->acin_in = power.isAcinIn();
+    out->acin_v = power.getAcinVoltage() / 1000.0f;
+    out->acin_ma = power.getAcinCurrent();
+    out->vbus_in = power.isVbusIn();
+    out->vbus_v = power.getVbusVoltage() / 1000.0f;
+    out->vbus_ma = power.getVbusCurrent();
+
+    // 芯片温度
+    out->temp_c = power.getTemperature();
+
+    return ESP_OK;
+}
+
+// 使能/关闭指定电源输出轨（供 UI 电源开关面板调用）。
+esp_err_t axp202_set_rail(axp202_rail_t rail, bool on)
+{
+    bool ok;
+    switch (rail)
+    {
+    case AXP202_RAIL_DCDC2:
+        ok = on ? power.enableDC2() : power.disableDC2();
+        break;
+    case AXP202_RAIL_DCDC3:
+        ok = on ? power.enableDC3() : power.disableDC3();
+        break;
+    case AXP202_RAIL_LDO2:
+        ok = on ? power.enableLDO2() : power.disableLDO2();
+        break;
+    case AXP202_RAIL_LDO3:
+        ok = on ? power.enableLDO3() : power.disableLDO3();
+        break;
+    case AXP202_RAIL_LDO4:
+        ok = on ? power.enableLDO4() : power.disableLDO4();
+        break;
+    case AXP202_RAIL_EXTEN:
+        ok = on ? power.enableExternalPin() : power.disableExternalPin();
+        break;
+    default:
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (!ok)
+    {
+        ESP_LOGE(TAG, "axp202_set_rail(%d, %d) failed", (int)rail, (int)on);
+        return ESP_FAIL;
+    }
+    ESP_LOGI(TAG, "axp202_set_rail(%d) -> %s", (int)rail, on ? "ON" : "OFF");
+    return ESP_OK;
+}
+
 #endif /*CONFIG_XPOWERS_CHIP_AXP202*/
