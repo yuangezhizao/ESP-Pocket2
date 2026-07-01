@@ -1,0 +1,10 @@
+# Overlay defaults for the QEMU RGB emulator build of the AXP202 dashboard.
+# Layer this on top of sdkconfig.defaults, e.g.:
+#   rm -f sdkconfig
+#   idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.qemu" build
+#   idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.qemu" qemu --graphics
+#
+# Selects the espressif/esp_lcd_qemu_rgb virtual framebuffer panel with simulated
+# AXP202 data (no real PMU/LCD in the emulator).
+CONFIG_AXP202_UI_PANEL_ST7789=n
+CONFIG_AXP202_UI_PANEL_QEMU_RGB=y
