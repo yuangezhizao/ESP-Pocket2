@@ -1,0 +1,4 @@
+# ESP-Pocket2 工程默认配置（idf.py 首次构建/重置 sdkconfig 时读取）
+#
+# 固定构建目标为 ESP32-S3：本工程的引脚等 Kconfig 默认值仅在 IDF_TARGET_ESP32S3 时提供（见 main/Kconfig.projbuild），若回退到默认 esp32 目标会因缺少 GPIO45~48 等定义而编译失败。此处显式声明目标，保证全新环境执行 `idf.py build` 开箱即用，与 CI（.github/workflows/build-esp-idf-project.yml 的 ESP_IDF_TARGET: ESP32S3）一致。
+CONFIG_IDF_TARGET="esp32s3"
