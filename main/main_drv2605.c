@@ -29,9 +29,13 @@
  */
 #include "sdkconfig.h"
 
-// #include "i2c_driver.h"
+#include "i2c_driver.h"
 #include "axp202_port.h"
 #include "sensor_drv2605.h"
+
+#if defined(CONFIG_XPOWERS_ESP_IDF_NEW_API) && !defined(CONFIG_SENSORLIB_ESP_IDF_NEW_API)
+#include "i2c_port.h"
+#endif
 
 static const char *TAG = "MAIN-DRV2605";
 
@@ -42,7 +46,15 @@ void app_main(void)
 {
 #if CONFIG_I2C_COMMUNICATION_METHOD_BUILTIN_RW || CONFIG_I2C_COMMUNICATION_METHOD_CALLBACK_RW
 
-    // ESP_ERROR_CHECK(i2c_drv_init());
+#if CONFIG_I2C_COMMUNICATION_METHOD_CALLBACK_RW || \
+    ((ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)) && \
+     (defined(CONFIG_XPOWERS_ESP_IDF_NEW_API) || defined(CONFIG_SENSORLIB_ESP_IDF_NEW_API)))
+#if defined(CONFIG_SENSORLIB_ESP_IDF_NEW_API)
+    ESP_ERROR_CHECK(i2c_drv_init());
+#elif defined(CONFIG_XPOWERS_ESP_IDF_NEW_API)
+    ESP_ERROR_CHECK(i2c_init());
+#endif
+#endif
 
     ESP_LOGI(TAG, "I2C initialized successfully");
 
