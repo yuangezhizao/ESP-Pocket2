@@ -323,3 +323,28 @@ menu "SD SPI Example Configuration"
         help
             Please read the schematic first and input your LDO ID.
 endmenu
+
+menu "AXP202 Dashboard UI"
+
+    choice AXP202_UI_PANEL
+        prompt "Display panel for the AXP202 dashboard"
+        default AXP202_UI_PANEL_ST7789
+        help
+            Selects the display backend used by main/main_lvgl_axp202.c.
+
+        config AXP202_UI_PANEL_ST7789
+            bool "ST7789 SPI LCD (real hardware)"
+            help
+                Drive the physical 240x320 ST7789 SPI panel (see main/lvgl/hp28008.c)
+                and feed live AXP202 / BM8563 readings over I2C. Use this when
+                flashing to the device.
+
+        config AXP202_UI_PANEL_QEMU_RGB
+            bool "QEMU virtual RGB framebuffer"
+            help
+                Render into the QEMU window via espressif/esp_lcd_qemu_rgb using
+                simulated AXP202 data (no real PMU/LCD in the emulator). Use this
+                with `idf.py qemu --graphics`.
+    endchoice
+
+endmenu

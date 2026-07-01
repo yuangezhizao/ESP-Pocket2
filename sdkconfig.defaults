@@ -1,4 +1,23 @@
 # ESP-Pocket2 工程默认配置（idf.py 首次构建/重置 sdkconfig 时读取）
-#
-# 固定构建目标为 ESP32-S3：本工程的引脚等 Kconfig 默认值仅在 IDF_TARGET_ESP32S3 时提供（见 main/Kconfig.projbuild），若回退到默认 esp32 目标会因缺少 GPIO45~48 等定义而编译失败。此处显式声明目标，保证全新环境执行 `idf.py build` 开箱即用，与 CI（.github/workflows/build-esp-idf-project.yml 的 ESP_IDF_TARGET: ESP32S3）一致。
+# （sdkconfig 本身是生成的/被 .gitignore 忽略；这些默认值在首次 configure 时应用）
+
+# 固定构建目标为 ESP32-S3：本工程的引脚等 Kconfig 默认值仅在 IDF_TARGET_ESP32S3 时提供
+# （见 main/Kconfig.projbuild）；若回退到默认 esp32 目标会因缺少 GPIO45~48 等定义而编译失败。
+# 显式声明目标，保证全新环境执行 `idf.py build` 开箱即用，与 CI（ESP_IDF_TARGET: ESP32S3）一致。
 CONFIG_IDF_TARGET="esp32s3"
+
+# LVGL color depth: RGB565 (matches the on-device ST7789 and the QEMU RGB panel BPP_16)
+CONFIG_LV_COLOR_DEPTH_16=y
+
+# Enable extra Montserrat font sizes for a richer, multi-level dashboard UI
+# (default config only ships Montserrat 14).
+CONFIG_LV_FONT_MONTSERRAT_12=y
+CONFIG_LV_FONT_MONTSERRAT_14=y
+CONFIG_LV_FONT_MONTSERRAT_16=y
+CONFIG_LV_FONT_MONTSERRAT_20=y
+CONFIG_LV_FONT_MONTSERRAT_28=y
+
+# AXP202 dashboard display backend: default to the physical ST7789 SPI panel
+# (real hardware). For the QEMU RGB emulator build, layer sdkconfig.qemu on top:
+#   idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.qemu" ... qemu --graphics
+CONFIG_AXP202_UI_PANEL_ST7789=y

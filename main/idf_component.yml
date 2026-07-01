@@ -8,6 +8,8 @@ dependencies:
   # component: "~1.0.0"
   esp_lvgl_port: "^2.8.0"
   esp_lcd_touch_gt911: "^1.2.0"
+  # Virtual RGB framebuffer panel for running graphics apps in QEMU (no hardware LCD needed).
+  # Used by main_lvgl_axp202.c so the LVGL UI can render into the QEMU window (idf.py qemu --graphics).
   esp_lcd_qemu_rgb: "^1.0.2"
   # For 3rd party components:
   # username/component: ">=1.0.0,<2.0.0"

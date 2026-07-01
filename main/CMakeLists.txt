@@ -9,6 +9,7 @@ file(GLOB_RECURSE I2C_APP_CPP_SOURCES ${CMAKE_SOURCE_DIR} "i2c_app/*.cpp")
 file(GLOB_RECURSE LGFX_CPP_SOURCES ${CMAKE_SOURCE_DIR} "lgfx/*.cpp")
 file(GLOB_RECURSE SD_CARD_C_SOURCES ${CMAKE_SOURCE_DIR} "sd_card/*.c")
 file(GLOB_RECURSE LVGL_QEMU_RGB_C_SOURCES ${CMAKE_SOURCE_DIR} "lvgl_qemu_rgb/*.c")
+file(GLOB_RECURSE FONTS_C_SOURCES ${CMAKE_SOURCE_DIR} "fonts/*.c")
 
 idf_component_register(
     SRCS
@@ -23,6 +24,7 @@ idf_component_register(
     ${LGFX_CPP_SOURCES}
     ${SD_CARD_C_SOURCES}
     ${LVGL_QEMU_RGB_C_SOURCES}
+    ${FONTS_C_SOURCES}
     # "main.c"
     # "main_axp202.c"
     # "main_i2c_scanner.c"
@@ -31,7 +33,8 @@ idf_component_register(
     # "main_lvgl.c"
     # "main_lgfx.c"
     # "main_sd_card.c"
-    "main_lvgl_qemu_rgb.c"
+    # "main_lvgl_qemu_rgb.c"
+    "main_lvgl_axp202.c"
 
     INCLUDE_DIRS
     "."
