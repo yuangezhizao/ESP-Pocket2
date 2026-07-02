@@ -7,7 +7,9 @@
  * 移植自官方例程 lcd_qemu_rgb_panel，将 LVGL v8 裸 lv_disp_drv API 适配为项目使用的 v9。
  */
 #include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
+#include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -16,7 +18,9 @@
 #include "esp_lcd_qemu_rgb.h"
 #include "esp_err.h"
 #include "esp_check.h"
+#include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_memory_utils.h"
 #include "lvgl.h"
 
 #include "lvgl_qemu_rgb.h"
@@ -28,6 +32,31 @@ static const char *TAG = "qemu_rgb";
 #define QEMU_LCD_V_RES              (480)
 /* 分离式 draw buffer 行数（内部 RAM） */
 #define QEMU_LVGL_BUF_LINES         (10)
+
+/* 色深 -> QEMU bpp / LVGL color format / 每像素字节（对齐官方，v9 转译） */
+#if CONFIG_LV_COLOR_DEPTH_32
+#define QEMU_RGB_BPP            RGB_QEMU_BPP_32
+#define QEMU_LVGL_COLOR_FORMAT  LV_COLOR_FORMAT_XRGB8888
+#define QEMU_LVGL_COLOR_FORMAT_NAME "XRGB8888"
+#define QEMU_LVGL_BYTES_PER_PX  4
+#elif CONFIG_LV_COLOR_DEPTH_16
+#define QEMU_RGB_BPP            RGB_QEMU_BPP_16
+#define QEMU_LVGL_COLOR_FORMAT  LV_COLOR_FORMAT_RGB565
+#define QEMU_LVGL_COLOR_FORMAT_NAME "RGB565"
+#define QEMU_LVGL_BYTES_PER_PX  2
+#else
+#error "QEMU RGB Panel only supports 16-bit and 32-bit color depth, please set LV_COLOR_DEPTH to 16 or 32"
+#endif
+
+/* 诊断：PSRAM 编译开关字符串（供日志与 GUI 自证） */
+#if CONFIG_SPIRAM
+#define QEMU_PSRAM_CFG "PSRAM=on"
+#else
+#define QEMU_PSRAM_CFG "PSRAM=off"
+#endif
+
+/* 诊断：本次实际生效配置字符串，由 setup_buffers 填充，供 GUI 读取 */
+static char s_qemu_rgb_diag[96];
 
 #define QEMU_LVGL_TICK_PERIOD_MS    (2)
 #define QEMU_LVGL_TASK_MAX_DELAY_MS (500)
@@ -79,6 +108,38 @@ static void qemu_rgb_lvgl_task(void *arg)
     }
 }
 
+static void qemu_rgb_lvgl_setup_buffers(lv_display_t *disp, esp_lcd_panel_handle_t panel)
+{
+    void *buf1 = NULL;
+    const char *mode;
+#if CONFIG_LVGL_QEMU_RGB_DEDIC_FB
+    ESP_LOGI(TAG, "Use QEMU dedicated frame buffer as LVGL draw buffer");
+    ESP_ERROR_CHECK(esp_lcd_rgb_qemu_get_frame_buffer(panel, &buf1));
+    const size_t buf_size = QEMU_LCD_H_RES * QEMU_LCD_V_RES * QEMU_LVGL_BYTES_PER_PX; /* 整屏 */
+    lv_display_set_buffers(disp, buf1, NULL, buf_size, LV_DISPLAY_RENDER_MODE_FULL);
+    mode = "DEDIC_FB/FULL";
+#else
+    ESP_LOGI(TAG, "Allocate separate LVGL draw buffer");
+    const size_t buf_size = QEMU_LCD_H_RES * QEMU_LVGL_BUF_LINES * QEMU_LVGL_BYTES_PER_PX;
+    buf1 = heap_caps_malloc(buf_size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    assert(buf1);
+    lv_display_set_buffers(disp, buf1, NULL, buf_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    mode = "PARTIAL";
+#endif
+    /* 诊断：记录实际生效配置，供日志与 GUI 自证（render mode / buffer 地址 / 内存类型 / 色深 / PSRAM 开关） */
+    const char *mem = esp_ptr_external_ram(buf1) ? "PSRAM"
+                      : (esp_ptr_internal(buf1) ? "INTERNAL" : "OTHER");
+    snprintf(s_qemu_rgb_diag, sizeof(s_qemu_rgb_diag), "%s | buf@%p %s | %s | %s",
+             mode, buf1, mem, QEMU_LVGL_COLOR_FORMAT_NAME, QEMU_PSRAM_CFG);
+    ESP_LOGW(TAG, "[DIAG] %s", s_qemu_rgb_diag);
+}
+
+/* 诊断：供 UI 展示本次实际生效配置 */
+const char *qemu_rgb_diag_str(void)
+{
+    return s_qemu_rgb_diag;
+}
+
 esp_err_t qemu_rgb_lvgl_run(void)
 {
     ESP_LOGI(TAG, "Install QEMU RGB LCD panel driver");
@@ -86,7 +147,7 @@ esp_err_t qemu_rgb_lvgl_run(void)
     const esp_lcd_rgb_qemu_config_t panel_config = {
         .width = QEMU_LCD_H_RES,
         .height = QEMU_LCD_V_RES,
-        .bpp = RGB_QEMU_BPP_16,
+        .bpp = QEMU_RGB_BPP,
     };
     ESP_RETURN_ON_ERROR(esp_lcd_new_rgb_qemu(&panel_config, &panel_handle), TAG,
                         "esp_lcd_new_rgb_qemu failed (this example only runs in QEMU)");
@@ -99,15 +160,11 @@ esp_err_t qemu_rgb_lvgl_run(void)
     lv_init();
 
     lv_display_t *disp = lv_display_create(QEMU_LCD_H_RES, QEMU_LCD_V_RES);
-    lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565);
+    lv_display_set_color_format(disp, QEMU_LVGL_COLOR_FORMAT);
     lv_display_set_user_data(disp, panel_handle);
     lv_display_set_flush_cb(disp, qemu_rgb_lvgl_flush_cb);
 
-    ESP_LOGI(TAG, "Allocate separate LVGL draw buffer");
-    const size_t buf_size = QEMU_LCD_H_RES * QEMU_LVGL_BUF_LINES * sizeof(lv_color16_t); /* RGB565 = 2B/px */
-    void *buf1 = malloc(buf_size);
-    assert(buf1);
-    lv_display_set_buffers(disp, buf1, NULL, buf_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    qemu_rgb_lvgl_setup_buffers(disp, panel_handle);
 
     ESP_LOGI(TAG, "Install LVGL tick timer");
     const esp_timer_create_args_t tick_timer_args = {

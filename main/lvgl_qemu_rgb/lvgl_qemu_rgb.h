@@ -28,6 +28,14 @@ esp_err_t qemu_rgb_lvgl_run(void);
  */
 void qemu_rgb_lvgl_demo_ui(lv_display_t *disp);
 
+/**
+ * @brief 返回本次实际生效的渲染配置字符串（诊断用，保留入库）
+ *
+ * 内容：渲染模式 / draw buffer 地址 / 内存类型(INTERNAL/PSRAM/OTHER) / 色深 / PSRAM 开关。
+ * 供日志与 GUI 自证当前配置是否生效，可在本地/CI 一眼确认 buffer 落点。
+ */
+const char *qemu_rgb_diag_str(void);
+
 #ifdef __cplusplus
 }
 #endif
