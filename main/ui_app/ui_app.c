@@ -32,16 +32,15 @@ static void ui_app_rotate_btn_cb(lv_event_t *e)
 static void ui_app_clock_timer_cb(lv_timer_t *timer)
 {
     LV_UNUSED(timer);
-    if (s_clock_label == NULL)
-    {
-        return;
-    }
+    /* s_clock_label 由 ui_app_create 一次性设置，之后不会归零。
+     * 单画面嵌入式用途下屏幕不会被销毁，故当前安全。 */
     const char *txt = (s_clock_src != NULL) ? s_clock_src() : NULL;
     lv_label_set_text(s_clock_label, (txt != NULL) ? txt : "Loading time...");
 }
 
 void ui_app_create(lv_obj_t *scr, ui_clock_source_fn clock_src)
 {
+    LV_ASSERT_MSG(s_clock_label == NULL, "ui_app_create: must only be called once");
     s_clock_src = clock_src;
 
     /* Create image */
