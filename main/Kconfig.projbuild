@@ -323,3 +323,13 @@ menu "SD SPI Example Configuration"
         help
             Please read the schematic first and input your LDO ID.
 endmenu
+
+menu "LVGL QEMU RGB Example Configuration"
+
+    config LVGL_QEMU_RGB_DEDIC_FB
+        bool "Use QEMU RGB panel dedicated framebuffer as LVGL draw buffer"
+        default n
+        help
+            启用后直接用 QEMU 虚拟面板自带帧缓冲（物理地址 0x20000000，整屏 800x480）作为 LVGL draw buffer，配合 FULL 渲染模式实现零拷贝；关闭（默认）则从内部 RAM 分配 10 行小 draw buffer，走 PARTIAL 分块渲染。
+
+endmenu
