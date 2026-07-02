@@ -18,6 +18,7 @@
 #include "esp_lcd_qemu_rgb.h"
 #include "esp_err.h"
 #include "esp_check.h"
+#include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_memory_utils.h"
 #include "lvgl.h"
@@ -120,7 +121,7 @@ static void qemu_rgb_lvgl_setup_buffers(lv_display_t *disp, esp_lcd_panel_handle
 #else
     ESP_LOGI(TAG, "Allocate separate LVGL draw buffer");
     const size_t buf_size = QEMU_LCD_H_RES * QEMU_LVGL_BUF_LINES * QEMU_LVGL_BYTES_PER_PX;
-    buf1 = malloc(buf_size);
+    buf1 = heap_caps_malloc(buf_size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     assert(buf1);
     lv_display_set_buffers(disp, buf1, NULL, buf_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
     mode = "PARTIAL";
