@@ -1,5 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2022-2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileContributor: 2026 ESP-Pocket2
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -260,7 +261,8 @@ esp_err_t app_lvgl_init(void)
 static const char *real_clock_source(void)
 {
     update_RTC_global_variable();
-    return RTC_global_variable;
+    /* RTC 读取失败时 strftime 写入 0 字节，返回 NULL 让 UI 层回退显示占位串 */
+    return (RTC_global_variable[0] != '\0') ? RTC_global_variable : NULL;
 }
 
 void app_main_display(void)
