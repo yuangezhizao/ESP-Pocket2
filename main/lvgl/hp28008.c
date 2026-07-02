@@ -5,6 +5,7 @@
  */
 
 #include "hp28008.h"
+#include "ui_app.h"
 
 #define BASE_TAG "HP28008"
 
@@ -12,9 +13,6 @@ static const char *TAG = BASE_TAG;
 static const char *TAG_LCD = BASE_TAG "-LCD";
 static const char *TAG_TOUCH = BASE_TAG "-TOUCH";
 static const char *TAG_LVGL = BASE_TAG "-LVGL";
-
-// LVGL image declare
-LV_IMG_DECLARE(esp_logo)
 
 /* LCD IO and panel */
 static esp_lcd_panel_io_handle_t lcd_io = NULL;
@@ -24,10 +22,6 @@ static esp_lcd_touch_handle_t touch_handle = NULL;
 /* LVGL display and touch */
 static lv_display_t *lvgl_disp = NULL;
 static lv_indev_t *lvgl_touch_indev = NULL;
-
-/* Clock display */
-static lv_obj_t *clock_label = NULL;
-static lv_timer_t *clock_timer = NULL;
 
 #if EXAMPLE_LCD_BL_USE_LEDC == (1)
 static void example_ledc_init(void)
@@ -262,29 +256,19 @@ esp_err_t app_lvgl_init(void)
     return ESP_OK;
 }
 
-static void _app_button_cb(lv_event_t *e)
-{
-    lv_disp_rotation_t rotation = lv_disp_get_rotation(lvgl_disp);
-    rotation++;
-    if (rotation > LV_DISPLAY_ROTATION_270)
-    {
-        rotation = LV_DISPLAY_ROTATION_0;
-    }
-
-    /* LCD HW rotation */
-    lv_disp_set_rotation(lvgl_disp, rotation);
-}
-
-static void _clock_timer_cb(lv_timer_t *timer)
+/* 真机时钟数据源：读取 BM8563 RTC 并返回格式化字符串，注入给可移植 UI 层 */
+static const char *real_clock_source(void)
 {
     update_RTC_global_variable();
-    lv_label_set_text(clock_label, RTC_global_variable);
+    return RTC_global_variable;
 }
 
-// static void app_main_display(void)
 void app_main_display(void)
 {
     ESP_LOGI(TAG, "Display LVGL example");
+
+    /* Task lock（LVGL API 非线程安全） */
+    lvgl_port_lock(0);
 
 #if EXAMPLE_LCD_DIRECTION == (90)
     lv_disp_set_rotation(lvgl_disp, LV_DISPLAY_ROTATION_90);
@@ -296,45 +280,8 @@ void app_main_display(void)
 
     lv_obj_t *scr = lv_scr_act();
 
-    /* Task lock */
-    lvgl_port_lock(0);
-
-    /* Your LVGL objects code here .... */
-    // Lock the mutex due to the LVGL APIs are not thread-safe
-
-    /* Create image */
-    lv_obj_t *img_logo = lv_img_create(scr);
-    lv_img_set_src(img_logo, &esp_logo);
-    lv_obj_align(img_logo, LV_ALIGN_TOP_MID, 0, 20);
-
-    /* Label */
-    lv_obj_t *label = lv_label_create(scr);
-    lv_obj_set_width(label, EXAMPLE_LCD_H_RES);
-    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
-#if LVGL_VERSION_MAJOR == 8
-    lv_label_set_recolor(label, true);
-    lv_label_set_text(label, "#FF0000 " LV_SYMBOL_BELL " Hello world Espressif and LVGL " LV_SYMBOL_BELL "#\n#FF9400 " LV_SYMBOL_WARNING " For simplier initialization, use BSP " LV_SYMBOL_WARNING " #");
-#else
-    lv_label_set_text(label, LV_SYMBOL_BELL " Hello world Espressif and LVGL " LV_SYMBOL_BELL "\n " LV_SYMBOL_WARNING " For simplier initialization, use BSP " LV_SYMBOL_WARNING);
-#endif
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, 20);
-
-    /* Clock Label */
-    clock_label = lv_label_create(scr);
-    lv_obj_set_width(clock_label, EXAMPLE_LCD_H_RES);
-    lv_obj_set_style_text_align(clock_label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_label_set_text(clock_label, "Loading time...");
-    lv_obj_align(clock_label, LV_ALIGN_CENTER, 0, 80);
-
-    /* Start LVGL clock timer (for UI updates only) */
-    clock_timer = lv_timer_create(_clock_timer_cb, 1000, NULL);
-
-    /* Button */
-    lv_obj_t *btn = lv_btn_create(scr);
-    label = lv_label_create(btn);
-    lv_label_set_text_static(label, "Rotate screen");
-    lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -30);
-    lv_obj_add_event_cb(btn, _app_button_cb, LV_EVENT_CLICKED, NULL);
+    /* 可移植 UI 层，硬件时钟数据源通过回调注入 */
+    ui_app_create(scr, real_clock_source);
 
     /* Task unlock */
     lvgl_port_unlock();
