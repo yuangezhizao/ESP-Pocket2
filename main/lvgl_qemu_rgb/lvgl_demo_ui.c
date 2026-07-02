@@ -54,6 +54,11 @@ void qemu_rgb_lvgl_demo_ui(lv_display_t *disp)
     lv_label_set_text(label, LV_SYMBOL_BELL " Hello Espressif & LVGL on QEMU RGB " LV_SYMBOL_BELL);
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 20);
 
+    /* 诊断：屏幕底部显示本次实际生效配置，便于确认 buffer 落点（保留入库） */
+    lv_obj_t *diag_label = lv_label_create(scr);
+    lv_label_set_text(diag_label, qemu_rgb_diag_str());
+    lv_obj_align(diag_label, LV_ALIGN_BOTTOM_MID, 0, -10);
+
     /* 散点图 */
     lv_obj_t *chart = lv_chart_create(scr);
     lv_obj_set_size(chart, 200, 150);
