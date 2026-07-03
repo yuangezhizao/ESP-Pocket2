@@ -35,6 +35,10 @@
   - `idf.py qemu` 是交互式的（串口接当前终端）；做非交互冒烟测试时用 `timeout` 包裹，例如 `timeout 35 idf.py qemu --qemu-extra-args "-no-reboot"`。
   - **桌面图形演示**：`idf.py qemu --graphics` 会开 SDL 窗口，图形输出走 `DISPLAY`。Desktop/XFCE/TigerVNC 一般由 Cursor 平台在启动时自动提供（对应 noVNC 面板，通常是 `DISPLAY=:1`）；当前 shell 的 `DISPLAY` 可能为空，运行前先设置，即 `DISPLAY=:1 idf.py qemu --graphics`。若 `:1` 不存在，用 `ls /tmp/.X11-unix/`（如 `X1` 对应 `:1`）或 `echo $DISPLAY` 确认实际编号。若平台未提供 X server/桌面包，再按需在 `.cursor/Dockerfile` 中补装缺失项。图形模式下按 `Ctrl-a` 再按 `x` 终止 QEMU。
 
+### PC 模拟（纯 LVGL SDL，免烧录看 UI）
+
+`pc_simulator/` 是复用 `main/ui_app/` 的纯 PC LVGL 模拟工程（SDL2，不经 ESP-IDF/QEMU），用于快速迭代 hp28008 的 LVGL 界面，并支持鼠标模拟触摸。构建运行见 `pc_simulator/README.md`。注意：它只渲染 UI、不跑真实固件/驱动；需要真实固件行为请用 QEMU 或真机。
+
 ### 选择运行哪个 demo
 
 实际生效的 `app_main` 由 `main/CMakeLists.txt` 中 `SRCS` 列表里**未被注释**的那个 `main_*.c` 决定；其余 `main_*.c` 以注释形式并列在同一处作为备选（完整清单以 `main/CMakeLists.txt` 为准，新增/删减例程时无需回来改本文件）。切换 demo 只需在该 `SRCS` 中注释/取消注释对应文件并重新构建。
