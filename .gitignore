@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# Build output directories (ESP-IDF and pc_simulator)
+build

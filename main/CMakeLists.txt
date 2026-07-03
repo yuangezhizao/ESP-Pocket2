@@ -9,6 +9,7 @@ file(GLOB_RECURSE I2C_APP_CPP_SOURCES ${CMAKE_SOURCE_DIR} "i2c_app/*.cpp")
 file(GLOB_RECURSE LGFX_CPP_SOURCES ${CMAKE_SOURCE_DIR} "lgfx/*.cpp")
 file(GLOB_RECURSE SD_CARD_C_SOURCES ${CMAKE_SOURCE_DIR} "sd_card/*.c")
 file(GLOB_RECURSE LVGL_QEMU_RGB_C_SOURCES ${CMAKE_SOURCE_DIR} "lvgl_qemu_rgb/*.c")
+file(GLOB_RECURSE UI_APP_C_SOURCES ${CMAKE_SOURCE_DIR} "ui_app/*.c")
 
 idf_component_register(
     SRCS
@@ -23,6 +24,7 @@ idf_component_register(
     ${LGFX_CPP_SOURCES}
     ${SD_CARD_C_SOURCES}
     ${LVGL_QEMU_RGB_C_SOURCES}
+    ${UI_APP_C_SOURCES}
     # "main.c"
     # "main_axp202.c"
     # "main_i2c_scanner.c"
@@ -46,6 +48,7 @@ idf_component_register(
     "lgfx"
     "sd_card"
     "lvgl_qemu_rgb"
+    "ui_app"
 )
 
 lvgl_port_create_c_image("images/esp_logo.png" "images/" "ARGB8888" "NONE")
