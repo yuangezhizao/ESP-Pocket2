@@ -8,7 +8,7 @@
 
 > 说明：保留该英文章节标题作为工具约定锚点；下方内容使用中文。
 
-本仓库是 **ESP-Pocket2**，一个面向 **ESP32-S3** 芯片的 ESP-IDF（v5.5.4）固件项目。没有 host 应用或 web 服务——构建产物是运行在 ESP32-S3（或 Espressif QEMU 模拟器）上的固件。
+本仓库是 **ESP-Pocket2**，一个面向 **ESP32-S3** 芯片的 ESP-IDF（v5.5.4）固件项目。主体构建产物是运行在 ESP32-S3（或 Espressif QEMU 模拟器）上的固件；另含 `pc_simulator/` 纯 PC LVGL SDL 模拟工程（仅用于免烧录预览 UI，非产品 host 服务）。
 
 ### Cloud Agent 环境（Dockerfile 模式，配置即代码）
 

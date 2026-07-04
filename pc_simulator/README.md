@@ -4,7 +4,7 @@
 
 ## 依赖
 
-- **Linux**：`sudo apt-get install -y libsdl2-dev cmake build-essential`
+- **Linux**：`sudo apt-get install -y libsdl2-dev cmake build-essential python3 python3-venv`
 - **macOS**：`brew install sdl2 cmake`
 - **Python3**：用于构建时生成 `esp_logo.c`；`cmake` 配置阶段会自动创建虚拟环境并安装所需依赖（`pypng` + `lz4` + `Pillow`），**无需手动 pip install**（首次 configure 需能访问 PyPI；若网络受限请先配置 pip 镜像/代理）
 - **LVGL v9.5.0**：由 `CMakeLists.txt` 的 `FetchContent` 从 GitHub 自动拉取，无需手动安装（首次 configure 需能访问 GitHub；若网络受限请配置 Git 代理或预先缓存）

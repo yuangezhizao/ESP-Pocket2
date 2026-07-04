@@ -6,7 +6,7 @@ struct tm timeinfo;
 
 char RTC_global_variable[32];
 
-void update_RTC_global_variable(void)
+bool update_RTC_global_variable(void)
 {
     rtc.getDateTime(&timeinfo);
 
@@ -19,9 +19,13 @@ void update_RTC_global_variable(void)
     if (written != 0)
     {
         ESP_LOGI(TAG, "%s", RTC_global_variable);
+        return true;
     }
     else
     {
         ESP_LOGE(TAG, "strftime failed or buffer too small!");
+        // 失败时清空缓冲，避免调用方读到上一次的旧时间
+        RTC_global_variable[0] = '\0';
+        return false;
     }
 }

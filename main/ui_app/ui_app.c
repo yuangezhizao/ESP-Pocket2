@@ -40,7 +40,12 @@ static void ui_app_clock_timer_cb(lv_timer_t *timer)
 
 void ui_app_create(lv_obj_t *scr, ui_clock_source_fn clock_src)
 {
-    LV_ASSERT_MSG(s_clock_label == NULL, "ui_app_create: must only be called once");
+    /* 运行时硬防重复调用：即使 LVGL assert 被关闭也生效，避免重复创建 timer 导致旧 timer 悬挂（handle 丢失、无法删除、仍持续触发并可能访问旧对象）。若将来需要销毁重建，见 docs/superpowers 中的方案 2(ui_app_destroy)/方案 3(ui_app_t 实例化) */
+    if (s_clock_label != NULL)
+    {
+        LV_LOG_WARN("ui_app_create called more than once, ignored");
+        return;
+    }
     s_clock_src = clock_src;
 
     /* Create image */
