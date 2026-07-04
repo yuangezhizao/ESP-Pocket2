@@ -92,6 +92,13 @@ static void qemu_rgb_lvgl_setup_buffers(lv_display_t *disp, esp_lcd_panel_handle
 }
 ```
 
+> ⚠️ 更正（2026-07-04，复审 PR5）：上面 Step 2 的 `setup_buffers` 是本 plan 初版，两处已在后续演进中修正：
+>
+> 1. Partial 分支 `malloc` → `heap_caps_malloc(..., MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)`（本 plan Task B，修复开 PSRAM 时 buffer 落 PSRAM 导致的黑屏）。
+> 2. 错误处理 → PR#7 把 `setup_buffers` 改为返回 `esp_err_t`：Partial 的 `assert(buf1)` 换成 `ESP_RETURN_ON_FALSE`、Dedicated FB 的 `ESP_ERROR_CHECK` 换成 `ESP_RETURN_ON_ERROR`，调用处用 `ESP_RETURN_ON_ERROR` 承接。
+>
+> 最新实现以 `main/lvgl_qemu_rgb/lvgl_qemu_rgb.c` 与本 spec 第 7.2/8 节为准。
+
 - [x] **Step 3:** 改 `qemu_rgb_lvgl_run()`：面板 `.bpp` 用 `QEMU_RGB_BPP`；`lv_display_set_color_format(disp, QEMU_LVGL_COLOR_FORMAT)`；把原来的"分配 buffer + set_buffers"三行替换为 `qemu_rgb_lvgl_setup_buffers(disp, panel_handle);`。
 
 - [x] **Step 4:** 提交。

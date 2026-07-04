@@ -229,6 +229,13 @@ esp_err_t qemu_rgb_lvgl_run(void)
 }
 ```
 
+> ⚠️ 更正（2026-07-04，复审 PR3-1/PR3-3）：上面 Step 2 的代码是 PR3 首版，有两个已知问题：
+>
+> 1. Partial 分支用 `malloc`，在开 PSRAM 且 buffer 实际落 PSRAM 时会被 QEMU esp_rgb 拒绝而黑屏。
+> 2. 面板 `.bpp` 与 `lv_display_set_color_format`、每像素字节硬编码 RGB565、不随 `LV_COLOR_DEPTH` 变化。
+>
+> 二者已由 PR#5 修正为 `heap_caps_malloc(..., MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)` 与“色深宏推导”，PR#7 又把 buffer 分配失败改为返回 `esp_err_t`。最新实现以 `docs/superpowers/*/2026-07-02-*` 与 `main/lvgl_qemu_rgb/lvgl_qemu_rgb.c` 为准；此处保留首版仅作历史记录。
+
 - [x] **Step 3: 写 UI `main/lvgl_qemu_rgb/lvgl_demo_ui.c`**
 
 ```c

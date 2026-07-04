@@ -260,9 +260,8 @@ esp_err_t app_lvgl_init(void)
 /* 真机时钟数据源：读取 BM8563 RTC 并返回格式化字符串，注入给可移植 UI 层 */
 static const char *real_clock_source(void)
 {
-    update_RTC_global_variable();
-    /* RTC 读取失败时 strftime 写入 0 字节，返回 NULL 让 UI 层回退显示占位串 */
-    return (RTC_global_variable[0] != '\0') ? RTC_global_variable : NULL;
+    /* 刷新失败时返回 NULL 让 UI 层回退显示占位串，避免显示上一次的旧时间 */
+    return update_RTC_global_variable() ? RTC_global_variable : NULL;
 }
 
 void app_main_display(void)

@@ -105,7 +105,7 @@ flowchart LR
 
 ### 7.2 缓冲分派（`qemu_rgb_lvgl_setup_buffers`）
 
-`#if CONFIG_LVGL_QEMU_RGB_DEDIC_FB`：`esp_lcd_rgb_qemu_get_frame_buffer()` 取帧缓冲，`buf_size = W*H*QEMU_LVGL_BYTES_PER_PX`，`LV_DISPLAY_RENDER_MODE_FULL`；`#else`：`malloc(W*10*QEMU_LVGL_BYTES_PER_PX)` + `assert`，`LV_DISPLAY_RENDER_MODE_PARTIAL`。两分支日志分别为 "Use QEMU dedicated frame buffer as LVGL draw buffer" 与 "Allocate separate LVGL draw buffer"（对齐官方）。
+`#if CONFIG_LVGL_QEMU_RGB_DEDIC_FB`：`esp_lcd_rgb_qemu_get_frame_buffer()` 取帧缓冲，`buf_size = W*H*QEMU_LVGL_BYTES_PER_PX`，`LV_DISPLAY_RENDER_MODE_FULL`；`#else`：`heap_caps_malloc(W*10*QEMU_LVGL_BYTES_PER_PX, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)`（强制 Partial draw buffer 落 internal RAM，规避开 PSRAM 时落 PSRAM 导致 QEMU esp_rgb 黑屏，见第 12 节），`LV_DISPLAY_RENDER_MODE_PARTIAL`。两分支日志分别为 "Use QEMU dedicated frame buffer as LVGL draw buffer" 与 "Allocate separate LVGL draw buffer"（对齐官方）。分配/取帧缓冲的失败处理见第 8 节（PR#7 已改为返回 `esp_err_t`）。
 
 ### 7.3 FULL 而非 DIRECT（v8/v9 皆然）
 
@@ -133,7 +133,7 @@ v9 的 draw part 事件模型改变：`lv_obj_add_event_cb(chart, cb, LV_EVENT_D
 
 ## 8. 错误处理
 
-与官方的差异（PR3 已定，本次保持）：官方在 `void app_main` 里全程 `ESP_ERROR_CHECK`（建面板失败即 abort）；本项目把逻辑放在返回 `esp_err_t` 的 `qemu_rgb_lvgl_run()`，唯独建面板 `esp_lcd_new_rgb_qemu()` 用 `ESP_RETURN_ON_ERROR` 先打印 "only runs in QEMU" 可读提示再返回错误码，其余步骤仍 `ESP_ERROR_CHECK`。因入口薄壳是 `ESP_ERROR_CHECK(qemu_rgb_lvgl_run())`，真机上最终仍会 abort，但先给出可读定位信息。Dedicated FB 取帧缓冲用 `ESP_ERROR_CHECK`（对齐官方；该 API 恒 `ESP_OK`）。`xTaskCreate`/`lv_display_create` 返回值两者均未检查（PR3 已记录为后续按需处理，本次不扩范围）。
+与官方的差异（PR3 已定，本次保持）：官方在 `void app_main` 里全程 `ESP_ERROR_CHECK`（建面板失败即 abort）；本项目把逻辑放在返回 `esp_err_t` 的 `qemu_rgb_lvgl_run()`，唯独建面板 `esp_lcd_new_rgb_qemu()` 用 `ESP_RETURN_ON_ERROR` 先打印 "only runs in QEMU" 可读提示再返回错误码，其余步骤仍 `ESP_ERROR_CHECK`。因入口薄壳是 `ESP_ERROR_CHECK(qemu_rgb_lvgl_run())`，真机上最终仍会 abort，但先给出可读定位信息。Dedicated FB 取帧缓冲用 `ESP_ERROR_CHECK`（对齐官方；该 API 恒 `ESP_OK`）。`xTaskCreate`/`lv_display_create` 返回值两者均未检查（PR3 已记录为后续按需处理）。**更正（2026-07-04，PR#7）**：`lv_display_create`/递归互斥量/`xTaskCreate` 与 Partial buffer 分配已改为 `ESP_RETURN_ON_FALSE` 返回 `esp_err_t`，Dedicated FB 取帧缓冲由 `ESP_ERROR_CHECK` 改为 `ESP_RETURN_ON_ERROR`；`qemu_rgb_lvgl_setup_buffers` 相应返回 `esp_err_t`。
 
 ## 9. 验证策略
 

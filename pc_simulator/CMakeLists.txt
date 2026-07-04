@@ -13,7 +13,7 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 FetchContent_Declare(
     lvgl
     GIT_REPOSITORY https://github.com/lvgl/lvgl.git
-    GIT_TAG v9.5.0
+    GIT_TAG 85aa60d18b3d5e5588d7b247abf90198f07c8a63  # v9.5.0（pin 到 commit 以保证可复现）
 )
 # 让 LVGL 使用本工程的 lv_conf.h
 set(LV_BUILD_CONF_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lv_conf.h" CACHE FILEPATH "" FORCE)
