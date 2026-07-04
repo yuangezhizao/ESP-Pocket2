@@ -88,6 +88,14 @@ flowchart LR
 - `esp_lcd_new_rgb_qemu` 在真机返回 `ESP_ERR_NOT_SUPPORTED`；例程用 `ESP_ERROR_CHECK` 快速失败并在日志中明确“本例程仅用于 QEMU”。
 - 各 `esp_lcd_*`/`esp_timer_*` 调用统一 `ESP_ERROR_CHECK`；draw buffer 分配失败以 `assert` 暴露（与官方一致）。
 
+> ⚠️ 更正（2026-07-04，复审 PR3-1/PR3-3/PR5-2）：本 spec 描述的是 PR3 首版设计，以下三点均已在后续演进中修正：
+>
+> 1. draw buffer 用 `malloc` → PR#5 改为 `heap_caps_malloc(..., MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)`（强制 internal RAM）。
+> 2. 硬编码 RGB565 → PR#5 改为随 `LV_COLOR_DEPTH` 的色深宏推导。
+> 3. 分配失败以 `assert` 暴露 → PR#7 把 `lv_display_create`/互斥量/`xTaskCreate`/buffer 分配等失败改为返回 `esp_err_t`（`ESP_RETURN_ON_*`）。
+>
+> 最新实现以 `docs/superpowers/*/2026-07-02-*` 与代码为准。
+
 ## 9. 验证策略
 
 - 构建：`idf.py build`（全新环境经 `sdkconfig.defaults` 自动选 esp32s3）；重点排查符号冲突与 v9 API 编译错误。

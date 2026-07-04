@@ -70,7 +70,11 @@ static void qemu_rgb_lvgl_flush_cb(lv_display_t *disp, const lv_area_t *area, ui
 {
     esp_lcd_panel_handle_t panel = (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
     /* QEMU 面板直接写虚拟帧缓冲，无需字节交换（区别于给 SPI 用的 swap_bytes） */
-    esp_lcd_panel_draw_bitmap(panel, area->x1, area->y1, area->x2 + 1, area->y2 + 1, px_map);
+    esp_err_t err = esp_lcd_panel_draw_bitmap(panel, area->x1, area->y1, area->x2 + 1, area->y2 + 1, px_map);
+    if (err != ESP_OK) {
+        /* 记录但不中断：仍须 lv_display_flush_ready 让 LVGL 继续，否则会一直等 buffer 就绪而停摆 */
+        ESP_LOGW(TAG, "draw_bitmap failed (%s), frame skipped", esp_err_to_name(err));
+    }
     lv_display_flush_ready(disp);
 }
 
@@ -160,6 +164,7 @@ esp_err_t qemu_rgb_lvgl_run(void)
     lv_init();
 
     lv_display_t *disp = lv_display_create(QEMU_LCD_H_RES, QEMU_LCD_V_RES);
+    ESP_RETURN_ON_FALSE(disp, ESP_ERR_NO_MEM, TAG, "lv_display_create failed");
     lv_display_set_color_format(disp, QEMU_LVGL_COLOR_FORMAT);
     lv_display_set_user_data(disp, panel_handle);
     lv_display_set_flush_cb(disp, qemu_rgb_lvgl_flush_cb);
@@ -176,10 +181,11 @@ esp_err_t qemu_rgb_lvgl_run(void)
     ESP_ERROR_CHECK(esp_timer_start_periodic(tick_timer, QEMU_LVGL_TICK_PERIOD_MS * 1000));
 
     s_lvgl_mux = xSemaphoreCreateRecursiveMutex();
-    assert(s_lvgl_mux);
+    ESP_RETURN_ON_FALSE(s_lvgl_mux, ESP_ERR_NO_MEM, TAG, "create LVGL mutex failed");
 
     ESP_LOGI(TAG, "Create LVGL task");
-    xTaskCreate(qemu_rgb_lvgl_task, "LVGL", QEMU_LVGL_TASK_STACK_SIZE, NULL, QEMU_LVGL_TASK_PRIORITY, NULL);
+    BaseType_t task_ok = xTaskCreate(qemu_rgb_lvgl_task, "LVGL", QEMU_LVGL_TASK_STACK_SIZE, NULL, QEMU_LVGL_TASK_PRIORITY, NULL);
+    ESP_RETURN_ON_FALSE(task_ok == pdPASS, ESP_ERR_NO_MEM, TAG, "create LVGL task failed");
 
     ESP_LOGI(TAG, "Display LVGL demo UI");
     if (qemu_rgb_lvgl_lock(-1)) {
