@@ -12,12 +12,12 @@
 
 ### Cloud Agent 环境（Dockerfile 模式，配置即代码）
 
-- 环境由仓库内 **`.cursor/environment.json` + `.cursor/Dockerfile`** 定义，基于官方镜像 **`espressif/idf:v5.5.4`**（发布 tag，可复现），不依赖任何个人快照。
+- 环境由仓库内 **`.cursor/environment.json` + `.cursor/Dockerfile`** 定义，基于官方镜像 **`espressif/idf:v5.5.4`**（Dockerfile 中 tag+digest 双锁定），不依赖任何个人快照。
 - 解析优先级：仓库 `.cursor/environment.json` > 个人 saved environment > 团队 saved environment。因此**从带本配置的分支起 Cloud Agent 会自动使用本 Dockerfile**：无需在 dashboard 手动创建环境（那条路径才依赖 GitHub 关联向导），也无需删除已有的个人快照（它会被更高优先级的仓库配置覆盖，仅作 fallback）。
 - ESP-IDF 位于 **`/opt/esp/idf`**（`IDF_PATH`），工具链在 `/opt/esp`。`export.sh` 已在镜像的 `/etc/bash.bashrc` 自动 source，新 shell 可直接用 `idf.py`；若某个 shell 没有该命令，运行 `source /opt/esp/idf/export.sh`（或官方 alias `get_idf`）。
 - 构建目标 `esp32s3` 由 `sdkconfig.defaults`（`CONFIG_IDF_TARGET="esp32s3"`）**声明式固定**：全新环境首次 `idf.py build` 会自动选中 esp32s3，**无需手动 `set-target`**。实际 `sdkconfig` 由其生成（首次构建/`reconfigure` 时产生），不应提交到仓库（注意勿用 `git add -A` 误加入）。`idf.py set-target esp32s3` 只在需要纠正/切换一个「已存在且目标错误」的 `sdkconfig` 时才用（Cloud 全新环境不会遇到）。
 - 第三方驱动（`XPowersLib`、`SensorLib`、`LovyanGFX`）是 `components/` 下的 **git submodule**；`environment.json` 的 `install`（每次启动运行的 update 命令）会执行 `git submodule update --init --recursive` 拉齐它们。
-- managed components（`esp_lvgl_port`、`esp_lcd_touch_gt911`、`lvgl/lvgl`，声明于 `main/idf_component.yml`）会在 `set-target`/`reconfigure`/`build` 时自动拉取到 `managed_components/`。
+- managed components（以 `main/idf_component.yml` 为准）会在 `set-target`/`reconfigure`/`build` 时自动拉取到 `managed_components/`。
 - 未来若需 Tailscale / cloudflared：直接在 `.cursor/Dockerfile` 里安装（或运行时装），按官方 userspace 方式启动即可——环境本身就是容器，无需 docker-in-docker。
 
 ### 构建 / 运行 / 体积

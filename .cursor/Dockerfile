@@ -4,10 +4,11 @@
 #
 # 说明：
 # - Cloud Agent 本身就运行在「一个容器」里（Firecracker microVM 内的容器）；本 Dockerfile 只是「声明这个容器长什么样」，并非 docker-in-docker。未来要装 Tailscale / cloudflared，直接在本文件里 apt 安装或下载二进制、运行时按官方 userspace 方式启动即可，全程无需 docker-in-docker。
-# - 基于 Espressif 官方镜像 espressif/idf:v5.5.4（发布 tag，可复现）：已内置 ESP-IDF v5.5.4、交叉编译器、Python venv、qemu-system-xtensa；IDF_PATH=/opt/esp/idf，IDF_TOOLS_PATH=/opt/esp。
+# - 基于 Espressif 官方镜像 espressif/idf:v5.5.4：已内置 ESP-IDF v5.5.4、交叉编译器、Python venv、qemu-system-xtensa；IDF_PATH=/opt/esp/idf，IDF_TOOLS_PATH=/opt/esp。
 # - 官方镜像是 Ubuntu based，满足 Cursor computer use（Desktop）对 Debian/Ubuntu 的要求。
 # - 不要 COPY 项目源码：Cursor 会自行 checkout 正确的 commit 到工作区。
-FROM espressif/idf:v5.5.4
+# - FROM 同时锁定 tag 与 digest：tag 便于人读，digest 保证镜像内容字节级不可变（tag 可被重推、digest 不会）；更新 IDF 版本时需同步更新该 digest（获取方式：docker buildx imagetools inspect espressif/idf:<tag>）。
+FROM espressif/idf:v5.5.4@sha256:b9f2d6ea1c19e0c9f7959bdb74a9e3c775642f9d0f3b841937c5fa3363db892b
 
 # ┌───────────────────────────────────────────────────────────────────────────┐
 # │ 平台会「自动安装」的包（无需在本文件重复安装）                              │
@@ -31,13 +32,15 @@ FROM espressif/idf:v5.5.4
 # │             libnotify4 libnss3 libxss1 libgl1-mesa-dri libglx-mesa0 libgl1  │
 # │   Python  : python3-minimal python3-numpy                                   │
 # │   浏览器  : google-chrome-stable（单独脚本 install-google-chrome 安装）      │
+# │   云资产  : bash ca-certificates coreutils curl findutils gzip tar          │
 # │                                                                            │
 # │ 另外平台还会：把 gh 软链到 /usr/local/bin/gh（→/exec-daemon/gh）、          │
 # │ 配置 git 身份与 SSH 提交签名、每次启动 `git clean -fd` 并重建               │
 # │ /opt/cursor/artifacts。                                                     │
 # │                                                                            │
-# │ ⚠️ 维护提示：若将来 Cursor 不再自动装上述包（表现为桌面/中文/               │
-# │    `idf.py qemu --graphics` 异常），把缺的项补进下面的 apt-get install。    │
+# │ ⚠️ 维护提示（实测于 2026-07-04，平台清单可能随时间变化）：若将来 Cursor     │
+# │    不再自动装上述包（表现为桌面/中文/`idf.py qemu --graphics` 异常），      │
+# │    把缺的项补进下面的 apt-get install。                                     │
 # └───────────────────────────────────────────────────────────────────────────┘
 
 # 只安装「基础镜像缺失、或需保底内置」的包（sudo 属保底，其余为平台 Aptfile 未含）：
