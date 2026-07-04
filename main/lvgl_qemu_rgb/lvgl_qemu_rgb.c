@@ -8,7 +8,6 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -112,13 +111,13 @@ static void qemu_rgb_lvgl_task(void *arg)
     }
 }
 
-static void qemu_rgb_lvgl_setup_buffers(lv_display_t *disp, esp_lcd_panel_handle_t panel)
+static esp_err_t qemu_rgb_lvgl_setup_buffers(lv_display_t *disp, esp_lcd_panel_handle_t panel)
 {
     void *buf1 = NULL;
     const char *mode;
 #if CONFIG_LVGL_QEMU_RGB_DEDIC_FB
     ESP_LOGI(TAG, "Use QEMU dedicated frame buffer as LVGL draw buffer");
-    ESP_ERROR_CHECK(esp_lcd_rgb_qemu_get_frame_buffer(panel, &buf1));
+    ESP_RETURN_ON_ERROR(esp_lcd_rgb_qemu_get_frame_buffer(panel, &buf1), TAG, "get frame buffer failed");
     const size_t buf_size = QEMU_LCD_H_RES * QEMU_LCD_V_RES * QEMU_LVGL_BYTES_PER_PX; /* 整屏 */
     lv_display_set_buffers(disp, buf1, NULL, buf_size, LV_DISPLAY_RENDER_MODE_FULL);
     mode = "DEDIC_FB/FULL";
@@ -126,7 +125,7 @@ static void qemu_rgb_lvgl_setup_buffers(lv_display_t *disp, esp_lcd_panel_handle
     ESP_LOGI(TAG, "Allocate separate LVGL draw buffer");
     const size_t buf_size = QEMU_LCD_H_RES * QEMU_LVGL_BUF_LINES * QEMU_LVGL_BYTES_PER_PX;
     buf1 = heap_caps_malloc(buf_size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-    assert(buf1);
+    ESP_RETURN_ON_FALSE(buf1, ESP_ERR_NO_MEM, TAG, "alloc LVGL draw buffer failed");
     lv_display_set_buffers(disp, buf1, NULL, buf_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
     mode = "PARTIAL";
 #endif
@@ -136,6 +135,7 @@ static void qemu_rgb_lvgl_setup_buffers(lv_display_t *disp, esp_lcd_panel_handle
     snprintf(s_qemu_rgb_diag, sizeof(s_qemu_rgb_diag), "%s | buf@%p %s | %s | %s",
              mode, buf1, mem, QEMU_LVGL_COLOR_FORMAT_NAME, QEMU_PSRAM_CFG);
     ESP_LOGW(TAG, "[DIAG] %s", s_qemu_rgb_diag);
+    return ESP_OK;
 }
 
 /* 诊断：供 UI 展示本次实际生效配置 */
@@ -169,7 +169,7 @@ esp_err_t qemu_rgb_lvgl_run(void)
     lv_display_set_user_data(disp, panel_handle);
     lv_display_set_flush_cb(disp, qemu_rgb_lvgl_flush_cb);
 
-    qemu_rgb_lvgl_setup_buffers(disp, panel_handle);
+    ESP_RETURN_ON_ERROR(qemu_rgb_lvgl_setup_buffers(disp, panel_handle), TAG, "setup buffers failed");
 
     ESP_LOGI(TAG, "Install LVGL tick timer");
     const esp_timer_create_args_t tick_timer_args = {
