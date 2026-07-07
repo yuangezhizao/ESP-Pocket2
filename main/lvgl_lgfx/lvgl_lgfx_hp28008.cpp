@@ -129,7 +129,13 @@ extern "C" esp_err_t lvgl_lgfx_hp28008_run(void)
     ESP_LOGI(TAG, "Init GT911 touch via esp_lcd_touch (reuse project bus_handle)");
     extern i2c_master_bus_handle_t bus_handle;   /* 由 main_lvgl_lgfx.c 的 i2c_drv_init 建立 */
     esp_lcd_panel_io_handle_t tp_io = NULL;
-    esp_lcd_panel_io_i2c_config_t tp_io_cfg = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
+    /* 逐字段赋值（不直接用 ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG() 宏聚合初始化）：该宏是 designated-initializer 且字段序（.scl_speed_hz 在 .dev_addr 前）与 esp_lcd_panel_io_i2c_config_t 声明序不一致，C++ 严格要求二者顺序一致故直接用会编译失败（C 允许乱序，hp28008.c 是 .c 文件故无碍）；与本文件 tp_cfg 一样用 {} + 逐字段赋值规避，字段值取自该宏（scl_speed_hz 沿用下方覆盖值）。 */
+    esp_lcd_panel_io_i2c_config_t tp_io_cfg = {};
+    tp_io_cfg.dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS;
+    tp_io_cfg.control_phase_bytes = 1;
+    tp_io_cfg.dc_bit_offset = 0;
+    tp_io_cfg.lcd_cmd_bits = 16;
+    tp_io_cfg.flags.disable_control_phase = 1;
     tp_io_cfg.scl_speed_hz = LVGL_LGFX_TOUCH_CLK_HZ;
     ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_i2c(bus_handle, &tp_io_cfg, &tp_io), TAG, "touch io failed");
 
