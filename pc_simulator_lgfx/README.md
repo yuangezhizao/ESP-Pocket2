@@ -62,7 +62,7 @@ wait "$APP_PID" 2>/dev/null || true
 
 ## 局限
 
-- 仅渲染 UI，不跑真实固件或驱动；需真实固件行为（如 I2C 外设、LEDC 背光、真实 GT911/BM8563）请使用 QEMU 或烧录到真机。
+- 仅渲染 UI，不跑真实固件或驱动；需验证真实 GT911/BM8563、LEDC 背光、触摸/显示等外设行为，请烧录到真机——QEMU 没有这些真实外设（见 `AGENTS.md`），仅适合有限的固件启动/日志冒烟，无法覆盖其行为。
 - 时钟显示本机时间（`pc_clock_source`），非真实 BM8563 RTC。
 - 旋转在 PC 上是纯软件坐标映射（`Panel_sdl` 写 framebuffer），**不代表真机性能**——真机旋转省 CPU 的红利来自 ST7789 的 MADCTL 硬件旋转，PC 无此硬件（详见 spec 第 8.3 节）。
 - 时钟源用 POSIX `localtime_r`，暂未适配 Windows（需改 `localtime_s` 或条件编译后方可在 Windows 构建）。
