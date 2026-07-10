@@ -48,11 +48,14 @@ FROM espressif/idf:v5.5.4@sha256:b9f2d6ea1c19e0c9f7959bdb74a9e3c775642f9d0f3b841
 # - libslirp0  : idf.py qemu 用户态网络（-nic user,model=open_eth）所需（不在平台 Aptfile 内，必须自己装）
 # - 开发 CLI   : htop vim less file lsof jq net-tools iproute2 dnsutils
 # - ccache / dfu-util / git-lfs : 编译加速 / 设备烧录 / git 大文件
+# - libsdl2-dev : pc_simulator / pc_simulator_lgfx 两个 PC LVGL(SDL) 模拟工程构建所需
+#                （不在基础镜像、也不在平台 Aptfile；而 xdotool/ffmpeg 已由平台 Aptfile 提供、无需在此装）
 RUN apt-get update && apt-get install -y --no-install-recommends \
       sudo libslirp0 \
       htop vim less file lsof jq \
       net-tools iproute2 dnsutils \
       ccache dfu-util git-lfs \
+      libsdl2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 让交互式（非登录）shell 自动进入 ESP-IDF 环境（agent 的 shell 未必经过镜像 ENTRYPOINT），等价于快照环境里 ~/.bashrc 中 source export.sh 的效果。
