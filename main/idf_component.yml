@@ -7,6 +7,7 @@ dependencies:
   # For components maintained by Espressif:
   # component: "~1.0.0"
   esp_lvgl_port: "^2.8.0"
+  esp_lcd_touch: "^1.2.1"
   esp_lcd_touch_gt911: "^1.2.0"
   esp_lcd_qemu_rgb: "^1.0.2"
   # For 3rd party components:
