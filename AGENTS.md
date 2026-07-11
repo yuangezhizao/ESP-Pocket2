@@ -39,6 +39,10 @@
 
 `pc_simulator/` 是复用 `main/ui_app/` 的纯 PC LVGL 模拟工程（SDL2，不经 ESP-IDF/QEMU），用于快速迭代 hp28008 的 LVGL 界面，并支持鼠标模拟触摸。构建运行见 `pc_simulator/README.md`。注意：它只渲染 UI、不跑真实固件/驱动；需要真实固件行为请用 QEMU 或真机。
 
+### PC 模拟（LovyanGFX SDL 后端变体）
+
+`pc_simulator_lgfx/` 是 `pc_simulator/` 的 LovyanGFX 后端变体：显示/触摸经 LovyanGFX `Panel_sdl` + 共享的 `main/lvgl_lgfx/lvgl_lgfx_bridge`（真机 `main_lvgl_lgfx.c` 用同一份 bridge）。构建运行见 `pc_simulator_lgfx/README.md`。真机对应入口是 `main_lvgl_lgfx.c`（LGFX 驱动 HP28008 显示、esp_lcd_touch 触摸、BM8563 RTC）。
+
 ### 选择运行哪个 demo
 
 实际生效的 `app_main` 由 `main/CMakeLists.txt` 中 `SRCS` 列表里**未被注释**的那个 `main_*.c` 决定；其余 `main_*.c` 以注释形式并列在同一处作为备选（完整清单以 `main/CMakeLists.txt` 为准，新增/删减例程时无需回来改本文件）。切换 demo 只需在该 `SRCS` 中注释/取消注释对应文件并重新构建。
